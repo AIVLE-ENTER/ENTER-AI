@@ -16,34 +16,21 @@ from langchain.chat_models import ChatOpenAI
 from langchain.prompts import ChatPromptTemplate
 import os.path
 import pickle
-import requests
 # from bs4 import BeautifulSoup
 import pandas as pd
-import datetime
 from langchain.callbacks.streaming_aiter import AsyncIteratorCallbackHandler
 import os
 api_key = os.getenv('OPEN_API_KEY')
-# class Chain_f:
-#     def __init__(self,keyword,ak):
-#         self.vectorstore = FAISS.load_local(keyword, embeddings=OpenAIEmbeddings(openai_api_key=ak))
-#         self.memory = ConversationBufferMemory(return_messages=True, output_key="answer", input_key="question")
+
+
 def make_chain(keyword,history):
     ak = api_key
     #stream_it = AsyncIteratorCallbackHandler()
     
     
     llm = ChatOpenAI(openai_api_key=ak, temperature=0)
-    vectorstore = FAISS.load_local('/home/wsl_han/aivle_project/remote/ENTER-AI/'+keyword, embeddings=OpenAIEmbeddings(openai_api_key=ak))
+    vectorstore = FAISS.load_local(keyword, embeddings=OpenAIEmbeddings(openai_api_key=ak))
     retriever = vectorstore.as_retriever()#(search_kwargs={"k": 50})
-
-    # llm = LlamaCpp(
-    #     model_path="../llachat.bin",
-    #     temperature=0,
-    #     max_tokens=2000,
-    #     top_p=1,
-    #     #callback_manager=callback_manager,
-    #     #verbose=True,  # Verbose is required to pass to the callback manager
-    # )
 
     retriever_from_llm = MultiQueryRetriever.from_llm(
         retriever=retriever, llm=llm,
@@ -55,6 +42,7 @@ def make_chain(keyword,history):
     Chat History:
     {chat_history}
     Follow Up Input: {question}
+    
     Standalone question:"""
     CONDENSE_QUESTION_PROMPT = PromptTemplate.from_template(_template)
 
@@ -113,28 +101,4 @@ def make_chain(keyword,history):
     # And now we put it all together!
     final_chain = loaded_memory | standalone_question | retrieved_documents | answer
     
-    return final_chain,memory
-
-# def crawl(topic):
-#     ak = "**********************"
-#     d = {'comment':[],'title':[],'date':[]}
-#     for i in range(1,101):
-#         url = f"https://www.fmkorea.com/search.php?act=IS&is_keyword={topic}&mid=home&where=comment&page={i}"
-#         response = requests.get(url)
-#         dom=BeautifulSoup(response.text,"html.parser")
-#     #     if datetime.datetime.strptime(dom.select_one(".time").text,'%Y-%m-%d %H:%M') < datetime.datetime(2023, 11, 20, 9, 41):
-#     #         break
-#         elements = dom.select("dt>a")
-#         dates = dom.select(".time")
-#         for j in range(len(elements)):
-#             title  = str(elements[j]).split("<br/>")[0].split('] ')[1]
-#             comment = str(elements[j]).split("<br/>")[1][:-4].replace('<b class="searchContextDoc">','').replace('</b>','')
-#             date = dates[j].text
-#             d['title'].append(title)
-#             d['comment'].append(comment)
-#             d['date'].append(date)
-
-#     df = pd.DataFrame(d)
-#     loader = DataFrameLoader(df,page_content_column='comment')
-#     docs = loader.load()
-#     vectorstore = FAISS.from_documents(docs,embedding=OpenAIEmbeddings(openai_api_key=ak))
+    return final_chain, memory

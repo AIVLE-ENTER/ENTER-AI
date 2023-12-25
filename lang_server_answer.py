@@ -53,13 +53,14 @@ app = FastAPI(
         
 @app.post('/answer/{keyword}')
 async def answer(keyword: str, item: Quest):
-    chain, memory =  make_chain(keyword,'m.txt')
-    input = {'question':item.question}
-    result = chain.invoke(input)
-    memory.save_context(input, {"answer": result["answer"].content})
-    with open('m.txt','wb') as f:
-        pickle.dump(memory,f)
-    return result
+        chain, memory = make_chain(keyword,'m.txt')
+        input = {'question':item.question}
+        result = chain.invoke(input)
+        memory.save_context(input, {"answer": result["answer"].content})
+        with open('m.txt','wb') as f:
+            pickle.dump(memory,f)
+            
+        return result
     #return StreamingResponse(streamer(chain,input),media_type="text/event-stream")
 
 # @app.post('/crawl')
