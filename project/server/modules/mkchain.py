@@ -27,42 +27,10 @@ def make_chain(keyword,history):
     ak = api_key
     #stream_it = AsyncIteratorCallbackHandler()
     
-    
-    llm = ChatOpenAI(openai_api_key=ak, temperature=0)
-    vectorstore = FAISS.load_local(keyword, embeddings=OpenAIEmbeddings(openai_api_key=ak))
-    retriever = vectorstore.as_retriever()#(search_kwargs={"k": 50})
-
-    retriever_from_llm = MultiQueryRetriever.from_llm(
-        retriever=retriever, llm=llm,
-    )
-
-    # chat_history와 현재 question을 이용해 질문 생성하는 템플릿
-    _template = """Given the following conversation and a follow up Input, rephrase the follow up Input to be a standalone Input, in its original language.
-
-    Chat History: {chat_history}
-    Follow Up Input: {question}
-    
-    Standalone question:"""
-    CONDENSE_QUESTION_PROMPT = PromptTemplate.from_template(_template)
-
-
-    # context를 참조해 한국어로 질문에 답변하는 템플릿
-    template = """Guess the answer in korean about the question by referring the following context,:{context}
-
-    Question: {question}
-    """
-    ANSWER_PROMPT = ChatPromptTemplate.from_template(template)
-
-
-    DEFAULT_DOCUMENT_PROMPT = PromptTemplate.from_template(template="{page_content}")
-
-
-    def _combine_documents(docs, document_prompt=DEFAULT_DOCUMENT_PROMPT, document_separator="\n\n"):
-        doc_strings = [format_document(doc, document_prompt) for doc in docs]
-        return document_separator.join(doc_strings)
-    
+    # 1. 채팅 기록 불러오기 : loaded_memory 부분
+    # 기록있으면 불러오고 없으면 비어있는 ConversationBufferMemory 생성
     if os.path.isfile(history):
-        with open('m.txt','rb') as f:
+        with open('./data/history'+f"{history}.txt",'rb') as f:      #경로예시 : ./data/history/m.txt
             memory = pickle.load(f)
     else:
         memory = ConversationBufferMemory(
@@ -72,6 +40,18 @@ def make_chain(keyword,history):
     loaded_memory = RunnablePassthrough.assign(
         chat_history=RunnableLambda(memory.load_memory_variables) | itemgetter("history"),
     )
+    
+    
+    #2. 채팅기록과 현재 입력으로 새로운 입력 생성  : standalone_question 부분
+    # chat_history와 현재 question을 이용해 질문 생성하는 템플릿
+    _template = """Given the following conversation and a follow up Input, rephrase the follow up Input to be a standalone Input, in its original language.
+
+    Chat History: {chat_history}
+    Follow Up Input: {question}
+    
+    Standalone question:"""
+    CONDENSE_QUESTION_PROMPT = PromptTemplate.from_template(_template)
+
     # Now we calculate the standalone question
     standalone_question = {
         "standalone_question": {
@@ -82,11 +62,36 @@ def make_chain(keyword,history):
         | ChatOpenAI(openai_api_key=ak,temperature=0)
         | StrOutputParser(),
     }
+    
+        
+    #3. 벡터DB에서 불러오기 : retrieved_documents 부분
+    vectorstore = FAISS.load_local('./data/database'+keyword, embeddings=OpenAIEmbeddings(openai_api_key=ak)) #./data/database/faiss_index
+    retriever = vectorstore.as_retriever()#(search_kwargs={"k": 50})
+
+    retriever_from_llm = MultiQueryRetriever.from_llm(
+        retriever=retriever, llm=ChatOpenAI(openai_api_key=ak, temperature=0),
+    )
     # Now we retrieve the documents
     retrieved_documents = {
         "docs": itemgetter("standalone_question") | retriever_from_llm,
         "question": lambda x: x["standalone_question"],
     }
+
+
+    #4. 최종 답하는 부분 : answer 부분
+    # context를 참조해 한국어로 질문에 답변하는 템플릿
+    template = """Guess the answer in korean about the question by referring the following context,:{context}
+
+    Question: {question}
+    """
+    ANSWER_PROMPT = ChatPromptTemplate.from_template(template)
+
+    DEFAULT_DOCUMENT_PROMPT = PromptTemplate.from_template(template="{page_content}")
+
+    def _combine_documents(docs, document_prompt=DEFAULT_DOCUMENT_PROMPT, document_separator="\n\n"):
+        doc_strings = [format_document(doc, document_prompt) for doc in docs]
+        return document_separator.join(doc_strings)
+
     # Now we construct the inputs for the final prompt
     final_inputs = {
         "context": lambda x: _combine_documents(x["docs"]),
@@ -97,6 +102,8 @@ def make_chain(keyword,history):
         "answer": final_inputs | ANSWER_PROMPT | ChatOpenAI(openai_api_key=ak, )#streaming=True,callbacks=[stream_it]),    #streaming?
         #"docs": itemgetter("docs"),
     }
+    
+    #5. 체인 연결
     # And now we put it all together!
     final_chain = loaded_memory | standalone_question | retrieved_documents | answer
     
