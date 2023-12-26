@@ -2,6 +2,7 @@ from fastapi import APIRouter
 from pydantic import BaseModel
 
 from server.modules.mkchain import make_chain
+from server.modules.set_template import SetTemplate
 from llm_model.llama2_answer import LangchainPipline
 
 class Quest(BaseModel):
@@ -18,17 +19,15 @@ class FastApiServer:
         self.router = APIRouter()
         self.register_routes()
         
-        self.lp = LangchainPipline()
         
         
     def register_routes(self):
         self.router.add_api_route("/answer/{keyword}", self.answer, methods=["POST"])
         self.router.add_api_route("/my_template/{llm}/{my_template}", self.set_my_template, methods=["GET"])
-        self.router.add_api_route("/llama2/{question}", self.llama_answer, methods=["GET"]) # 추후 크롤링 파이프라인에 맞게 재조정(url호출 시 파이프라인 진행)
-        self.router.add_api_route("/start_crawl/{keyword}", self.start_crawl, methods=["GET"]) 
+        self.router.add_api_route("/llama/{question}", self.llama_answer, methods=["GET"]) # 추후 크롤링 파이프라인에 맞게 재조정(url호출 시 파이프라인 진행)
+        self.router.add_api_route("/start_crawl/{keyword}", self.start_crawl, methods=["GET"])
         
         # self.router.add_api_route("/faiss/{faiss_method 호출}", self.llama_answer, methods=["GET"])
-        
 
     async def answer(self, 
                      keyword:str, 
@@ -40,8 +39,11 @@ class FastApiServer:
         
         return result
     
-    async def set_my_template(self, llm, my_prompt): 
-        # property 오버라이딩? 저장해서 관리하는 방식? -> 저장 쪽으로 좀 더 쏠리는중
+    async def set_my_template(self, llm, my_template):
+        st = SetTemplate(llm)
+        st.edit(my_template)
+        
+        
         # llm에 따라 저장하는 템플릿 방식 나눔.
         # llama2, chatgpt
         
@@ -51,7 +53,9 @@ class FastApiServer:
                     question,
                     ): # 임시. 테스트로 두고 크롤링 파이프라인 개발하면 삭제할 예정
         
+        self.lp = LangchainPipline()
         result = self.lp.chain(question = question)
+        
         
         return result
         
@@ -73,9 +77,5 @@ class FastApiServer:
         # 5. df 순차적으로 loop
         
         # 6. [loop] 임베딩 및 vectordb에 저장
-        
-        
-        
-        
         
         pass

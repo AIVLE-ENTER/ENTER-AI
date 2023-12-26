@@ -20,7 +20,7 @@ class LlmPipeline():
                     tokenizer            = self.tokenizer,
                     torch_dtype          = torch.bfloat16,
                     device_map           = "auto",
-                    max_new_tokens       = 5,
+                    max_new_tokens       = 500,
                     do_sample            = True,
                     top_k                = 30,
                     num_return_sequences = 1,

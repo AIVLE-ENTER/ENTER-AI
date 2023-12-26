@@ -12,11 +12,13 @@ class LangchainPipline():
     def __init__(self, 
                  model_path = "TheBloke/Llama-2-13B-Chat-GPTQ"):
         
-        self.pipe = LlmPipeline(model_path = model_path)
+        self.model_path = model_path
+        #self.pipe = 
         self.template = SetTemplate('llama')
         
     def chain(self, question):
-        llm = HuggingFacePipeline(pipeline     = self.pipe.load(), 
+        pipe = LlmPipeline(model_path = self.model_path)
+        llm = HuggingFacePipeline(pipeline     = pipe.load(),#self.pipe.load(), # 이렇게 하니까 모델을 다시 로드하긴 하지만 메모리는 정상적으로 차지함 
                                   model_kwargs = {'temperature':0})
 
         prompt = PromptTemplate(
