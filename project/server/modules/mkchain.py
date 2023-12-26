@@ -39,8 +39,7 @@ def make_chain(keyword,history):
     # chat_history와 현재 question을 이용해 질문 생성하는 템플릿
     _template = """Given the following conversation and a follow up Input, rephrase the follow up Input to be a standalone Input, in its original language.
 
-    Chat History:
-    {chat_history}
+    Chat History: {chat_history}
     Follow Up Input: {question}
     
     Standalone question:"""
