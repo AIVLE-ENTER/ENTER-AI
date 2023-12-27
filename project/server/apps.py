@@ -1,7 +1,9 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
+import os
+from pathlib import Path
 
-from server.modules.mkchain import make_chain
+from server.modules.mkchain import ChainPipe
 from server.modules.set_template import SetTemplate
 from llm_model.llama2_answer import LangchainPipline
 
@@ -26,19 +28,35 @@ class FastApiServer:
         self.router.add_api_route("/my_template/{llm}/{my_template}", self.set_my_template, methods=["GET"])
         self.router.add_api_route("/llama/{question}", self.llama_answer, methods=["GET"]) # 추후 크롤링 파이프라인에 맞게 재조정(url호출 시 파이프라인 진행)
         self.router.add_api_route("/start_crawl/{keyword}", self.start_crawl, methods=["GET"])
+        self.router.add_api_route("/hist/{keyword}", self.hist, methods=["GET"])
+        self.router.add_api_route("/", self.chat_list, methods=["GET"])
         
         # self.router.add_api_route("/faiss/{faiss_method 호출}", self.llama_answer, methods=["GET"])
 
     async def answer(self, 
                      keyword:str, 
                      item:Quest):
-        chain, memory = make_chain(keyword,'m.txt')
+        chainpipe = ChainPipe(keyword)
+        memory = chainpipe.load_history()
+        chain= chainpipe.make_chain()
         input = {'question': item.question}
         result = chain.invoke(input)
         memory.save_context(input, {"answer": result["answer"].content})
-        
+        # with open(chainpipe.history_path,'wb') as f:
+        #     pickle.dump(memory,f)
         return result
     
+    async def hist(self, keyword: str):
+        chainpipe = ChainPipe(keyword)
+        j = chainpipe.conversation_json()
+        #print(j)
+        return j
+    
+    async def chat_list(self):
+        path = Path(__file__).parent.parent / 'data' / 'database'
+        l=os.listdir(path)
+        print(l)
+        return l
     async def set_my_template(self, llm, my_template):
         st = SetTemplate(llm)
         st.edit(my_template)

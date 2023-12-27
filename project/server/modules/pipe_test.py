@@ -30,10 +30,9 @@ class ConversationBufferMemory_new(ConversationBufferMemory):
     def conversation_json(self) -> str:
         temp = self.load_memory_variables({})['history']
         n=len(temp)//2
-        d={'n': n, 'conversation':{}}
+        d={'n': n, 'conversation':[]}
         for i in range(n):
-            d['conversation'][f'con{i}']={'question':temp[2*i].content,"answer": temp[2*i+1].content}
-        j = json.dumps(d,ensure_ascii=False, indent=3)
+            d['conversation'].append({'question':temp[2*i].content,'answer': temp[2*i+1].content})
         return j
                 
 def mem_load_k(memory:ConversationBufferMemory, k:int) -> ConversationBufferMemory:
@@ -48,7 +47,7 @@ def mem_load_k(memory:ConversationBufferMemory, k:int) -> ConversationBufferMemo
         
         return memory2
 
-def conversation_json(memory:ConversationBufferMemory) -> str:
+def conversation_json(memory:ConversationBufferMemory):
     temp = memory.load_memory_variables({})['history']
     n=len(temp)//2
     d={'n': n, 'conversation':[]}

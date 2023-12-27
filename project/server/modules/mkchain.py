@@ -20,90 +20,112 @@ import pickle
 import pandas as pd
 from langchain.callbacks.streaming_aiter import AsyncIteratorCallbackHandler
 import os
+from pathlib import Path
 
-
-
-def make_chain(keyword,history):
-    #stream_it = AsyncIteratorCallbackHandler()
+class ChainPipe():
     
-    # 1. 채팅 기록 불러오기 : loaded_memory 부분
-    # 기록있으면 불러오고 없으면 비어있는 ConversationBufferMemory 생성
-    if os.path.isfile(history):
-        with open('./data/history'+f"{history}.txt",'rb') as f:      #경로예시 : ./data/history/m.txt
-            memory = pickle.load(f)
-    else:
-        memory = ConversationBufferMemory(
-            return_messages=True, output_key="answer", input_key="question"
-        )
- 
-    loaded_memory = RunnablePassthrough.assign(
-        chat_history=RunnableLambda(memory.load_memory_variables) | itemgetter("history"),
-    )
-    
-    
-    #2. 채팅기록과 현재 입력으로 새로운 입력 생성  : standalone_question 부분
-    # chat_history와 현재 question을 이용해 질문 생성하는 템플릿
-    _template = """Given the following conversation and a follow up Input, rephrase the follow up Input to be a standalone Input, in its original language.
-
-    Chat History: {chat_history}
-    Follow Up Input: {question}
-    
-    Standalone question:"""
-    CONDENSE_QUESTION_PROMPT = PromptTemplate.from_template(_template)
-
-    # Now we calculate the standalone question
-    standalone_question = {
-        "standalone_question": {
-            "question": lambda x: x["question"],
-            "chat_history": lambda x: get_buffer_string(x["chat_history"]),
-        }
-        | CONDENSE_QUESTION_PROMPT
-        | ChatOpenAI(temperature=0)
-        | StrOutputParser(),
-    }
-    
+    def __init__(self,keyword):
+        self.history_path = Path(__file__).parent.parent.parent / 'data' / 'history' / f'{keyword}.pkl'
+        self.database_path = Path(__file__).parent.parent.parent / 'data' / 'database' / f'{keyword}'
+        self.memory = None
         
-    #3. 벡터DB에서 불러오기 : retrieved_documents 부분
-    vectorstore = FAISS.load_local('./data/database'+keyword, embeddings=OpenAIEmbeddings()) #./data/database/faiss_index
-    retriever = vectorstore.as_retriever()#(search_kwargs={"k": 50})
+    def load_history(self):
+        if os.path.isfile(self.history_path):
+            with open(self.history_path,'rb') as f:      #경로예시 : ./data/history/m.txt
+                memory = pickle.load(f)
+        else:
+            memory = ConversationBufferMemory(
+                return_messages=True, output_key="answer", input_key="question"
+            )
+        self.memory = memory
+        return memory
 
-    retriever_from_llm = MultiQueryRetriever.from_llm(
-        retriever=retriever, llm=ChatOpenAI(temperature=0),
-    )
-    # Now we retrieve the documents
-    retrieved_documents = {
-        "docs": itemgetter("standalone_question") | retriever_from_llm,
-        "question": lambda x: x["standalone_question"],
-    }
+    def make_chain(self):
+        #stream_it = AsyncIteratorCallbackHandler()
+        if not self.memory:
+            self.memory = self.load_history()
+        # 1. 채팅 기록 불러오기 : loaded_memory 부분
+        # 기록있으면 불러오고 없으면 비어있는 ConversationBufferMemory 생성
+
+        loaded_memory = RunnablePassthrough.assign(
+            chat_history=RunnableLambda(self.memory.load_memory_variables) | itemgetter("history"),
+        )
+        
+        
+        #2. 채팅기록과 현재 입력으로 새로운 입력 생성  : standalone_question 부분
+        # chat_history와 현재 question을 이용해 질문 생성하는 템플릿
+        _template = """Given the following conversation and a follow up Input, rephrase the follow up Input to be a standalone Input, in its original language.
+
+        Chat History: {chat_history}
+        Follow Up Input: {question}
+        
+        Standalone question:"""
+        CONDENSE_QUESTION_PROMPT = PromptTemplate.from_template(_template)
+
+        # Now we calculate the standalone question
+        standalone_question = {
+            "standalone_question": {
+                "question": lambda x: x["question"],
+                "chat_history": lambda x: get_buffer_string(x["chat_history"]),
+            }
+            | CONDENSE_QUESTION_PROMPT
+            | ChatOpenAI(temperature=0)
+            | StrOutputParser(),
+        }
+        
+            
+        #3. 벡터DB에서 불러오기 : retrieved_documents 부분
+        vectorstore = FAISS.load_local(self.database_path, embeddings=OpenAIEmbeddings()) #./data/database/faiss_index
+        retriever = vectorstore.as_retriever()#(search_kwargs={"k": 50})
+
+        retriever_from_llm = MultiQueryRetriever.from_llm(
+            retriever=retriever, llm=ChatOpenAI(temperature=0),
+        )
+        # Now we retrieve the documents
+        retrieved_documents = {
+            "docs": itemgetter("standalone_question") | retriever_from_llm,
+            "question": lambda x: x["standalone_question"],
+        }
 
 
-    #4. 최종 답하는 부분 : answer 부분
-    # context를 참조해 한국어로 질문에 답변하는 템플릿
-    template = """Guess the answer in korean about the question by referring the following context,:{context}
+        #4. 최종 답하는 부분 : answer 부분
+        # context를 참조해 한국어로 질문에 답변하는 템플릿
+        template = """Guess the answer in korean about the question by referring the following context,:{context}
 
-    Question: {question}
-    """
-    ANSWER_PROMPT = ChatPromptTemplate.from_template(template)
+        Question: {question}
+        """
+        ANSWER_PROMPT = ChatPromptTemplate.from_template(template)
 
-    DEFAULT_DOCUMENT_PROMPT = PromptTemplate.from_template(template="{page_content}")
+        DEFAULT_DOCUMENT_PROMPT = PromptTemplate.from_template(template="{page_content}")
 
-    def _combine_documents(docs, document_prompt=DEFAULT_DOCUMENT_PROMPT, document_separator="\n\n"):
-        doc_strings = [format_document(doc, document_prompt) for doc in docs]
-        return document_separator.join(doc_strings)
+        def _combine_documents(docs, document_prompt=DEFAULT_DOCUMENT_PROMPT, document_separator="\n\n"):
+            doc_strings = [format_document(doc, document_prompt) for doc in docs]
+            return document_separator.join(doc_strings)
 
-    # Now we construct the inputs for the final prompt
-    final_inputs = {
-        "context": lambda x: _combine_documents(x["docs"]),
-        "question": itemgetter("question"),
-    }
-    # And finally, we do the part that returns the answers
-    answer = {
-        "answer": final_inputs | ANSWER_PROMPT | ChatOpenAI()#streaming=True,callbacks=[stream_it]),    #streaming?
-        #"docs": itemgetter("docs"),
-    }
+        # Now we construct the inputs for the final prompt
+        final_inputs = {
+            "context": lambda x: _combine_documents(x["docs"]),
+            "question": itemgetter("question"),
+        }
+        # And finally, we do the part that returns the answers
+        answer = {
+            "answer": final_inputs | ANSWER_PROMPT | ChatOpenAI(),#streaming=True,callbacks=[stream_it]),    #streaming?
+            #"docs": itemgetter("docs"),
+        }
+        
+        #5. 체인 연결
+        # And now we put it all together!
+        final_chain = loaded_memory | standalone_question | retrieved_documents | answer
+        
+        return final_chain
     
-    #5. 체인 연결
-    # And now we put it all together!
-    final_chain = loaded_memory | standalone_question | retrieved_documents | answer
-    
-    return final_chain, memory
+    def conversation_json(self):
+        if not self.memory:
+            self.memory = self.load_history()
+        temp = self.memory.load_memory_variables({})['history']
+        n=len(temp)//2
+        d={'n': n, 'conversation':[]}
+        for i in range(n):
+            d['conversation'].append({'question':temp[2*i].content,'answer': temp[2*i+1].content})
+        #j = json.dumps(d,ensure_ascii=False, indent=3)
+        return d
