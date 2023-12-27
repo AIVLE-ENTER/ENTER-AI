@@ -51,11 +51,11 @@ def mem_load_k(memory:ConversationBufferMemory, k:int) -> ConversationBufferMemo
 def conversation_json(memory:ConversationBufferMemory) -> str:
     temp = memory.load_memory_variables({})['history']
     n=len(temp)//2
-    d={'n': n, 'conversation':{}}
+    d={'n': n, 'conversation':[]}
     for i in range(n):
-        d['conversation'][f'con{i}']={'question':temp[2*i].content,"answer": temp[2*i+1].content}
-    j = json.dumps(d,ensure_ascii=False, indent=3)
-    return j
+        d['conversation'].append({'question':temp[2*i].content,'answer': temp[2*i+1].content})
+    #j = json.dumps(d,ensure_ascii=False, indent=3)
+    return d
 
 # history = 'cafe'
 # with open('history/'+history+'.pkl','rb') as f:
