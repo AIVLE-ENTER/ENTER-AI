@@ -20,11 +20,10 @@ import pickle
 import pandas as pd
 from langchain.callbacks.streaming_aiter import AsyncIteratorCallbackHandler
 import os
-api_key = os.getenv('OPEN_API_KEY')
+
 
 
 def make_chain(keyword,history):
-    ak = api_key
     #stream_it = AsyncIteratorCallbackHandler()
     
     # 1. 채팅 기록 불러오기 : loaded_memory 부분
@@ -59,17 +58,17 @@ def make_chain(keyword,history):
             "chat_history": lambda x: get_buffer_string(x["chat_history"]),
         }
         | CONDENSE_QUESTION_PROMPT
-        | ChatOpenAI(openai_api_key=ak,temperature=0)
+        | ChatOpenAI(temperature=0)
         | StrOutputParser(),
     }
     
         
     #3. 벡터DB에서 불러오기 : retrieved_documents 부분
-    vectorstore = FAISS.load_local('./data/database'+keyword, embeddings=OpenAIEmbeddings(openai_api_key=ak)) #./data/database/faiss_index
+    vectorstore = FAISS.load_local('./data/database'+keyword, embeddings=OpenAIEmbeddings()) #./data/database/faiss_index
     retriever = vectorstore.as_retriever()#(search_kwargs={"k": 50})
 
     retriever_from_llm = MultiQueryRetriever.from_llm(
-        retriever=retriever, llm=ChatOpenAI(openai_api_key=ak, temperature=0),
+        retriever=retriever, llm=ChatOpenAI(temperature=0),
     )
     # Now we retrieve the documents
     retrieved_documents = {
@@ -99,7 +98,7 @@ def make_chain(keyword,history):
     }
     # And finally, we do the part that returns the answers
     answer = {
-        "answer": final_inputs | ANSWER_PROMPT | ChatOpenAI(openai_api_key=ak, )#streaming=True,callbacks=[stream_it]),    #streaming?
+        "answer": final_inputs | ANSWER_PROMPT | ChatOpenAI()#streaming=True,callbacks=[stream_it]),    #streaming?
         #"docs": itemgetter("docs"),
     }
     
