@@ -57,6 +57,7 @@ class FastApiServer:
         l=os.listdir(path)
         print(l)
         return l
+    
     async def set_my_template(self, llm, my_template):
         st = SetTemplate(llm)
         st.edit(my_template)

@@ -1,26 +1,21 @@
-import pandas as pd
-from langchain.document_loaders import DataFrameLoader
-from langchain.vectorstores.faiss import FAISS
-from langchain.embeddings import OpenAIEmbeddings
-from langchain.prompts import PromptTemplate
-from langchain.schema import format_document
-from langchain.memory import ConversationBufferMemory
-from langchain_core.runnables import RunnableParallel,RunnablePassthrough, RunnableLambda
+import os
+import pickle
+from pathlib import Path
 from operator import itemgetter
+
+from langchain.chat_models import ChatOpenAI
+from langchain.schema import format_document
+from langchain.vectorstores.faiss import FAISS
+from langchain.prompts import PromptTemplate, ChatPromptTemplate
+
+from langchain.embeddings import OpenAIEmbeddings
+from langchain.memory import ConversationBufferMemory
+from langchain.retrievers.multi_query import MultiQueryRetriever
+
 from langchain_core.messages import get_buffer_string
 from langchain_core.output_parsers import StrOutputParser
-from langchain.retrievers.multi_query import MultiQueryRetriever
-from pydantic import BaseModel
-from typing import Optional
-from langchain.chat_models import ChatOpenAI
-from langchain.prompts import ChatPromptTemplate
-import os.path
-import pickle
-# from bs4 import BeautifulSoup
-import pandas as pd
-from langchain.callbacks.streaming_aiter import AsyncIteratorCallbackHandler
-import os
-from pathlib import Path
+from langchain_core.runnables import RunnablePassthrough, RunnableLambda
+
 
 class ChainPipe():
     
