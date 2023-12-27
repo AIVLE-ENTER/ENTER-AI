@@ -3,7 +3,7 @@ from pydantic import BaseModel
 import os
 from pathlib import Path
 
-from server.modules.mkchain import ChainPipe
+from project.server.modules.chainpipe import ChainPipe
 from server.modules.set_template import SetTemplate
 from llm_model.llama2_answer import LangchainPipline
 

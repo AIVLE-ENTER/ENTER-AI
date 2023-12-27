@@ -1,0 +1,9 @@
+llama:
+  parameters:
+     max_new_tokens : 500
+     top_k : 1
+
+chatgpt:
+  parameters:
+    
+    
