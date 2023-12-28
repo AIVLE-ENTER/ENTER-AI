@@ -5,21 +5,19 @@ from langchain.vectorstores.faiss import FAISS
 from langchain.document_loaders import DataFrameLoader
 
 class VectorPipeline():
-    
-    def __init__(self) -> None:
-        self.BASE_DIR = Path(__file__).parent.parent
+    BASE_DIR = Path(__file__).parent.parent
 
-    
-    def embedding_and_store(self, 
+    @classmethod
+    def embedding_and_store(cls, 
                             data:pd.DataFrame, 
-                            embedding, 
                             keyword:str, 
-                            content:str = 'document'):
+                            embedding, 
+                            target_col:str = 'document'):
         
-        kwd_db_path = self.BASE_DIR.parent / 'data' / 'database' / f'{keyword}'  
+        kwd_db_path = cls.BASE_DIR.parent / 'data' / 'database' / f'{keyword}'  
         
         loader = DataFrameLoader(data, 
-                                 page_content_column = content)
+                                 page_content_column = target_col)
         docs = loader.load()
         vectorstore = FAISS.from_documents(docs, 
                                            embedding = embedding)
@@ -33,10 +31,11 @@ class VectorPipeline():
         else:
             vectorstore.save_local(kwd_db_path)
             
-    def delete_store_by_keyword(self, keyword):
+    @classmethod        
+    def delete_store_by_keyword(cls, keyword):
         
-        database_path = self.BASE_DIR / 'data' / 'database' / f'{keyword}'
-        history_path  = self.BASE_DIR / 'data' / 'history' / f'{keyword}.pkl'
+        database_path = cls.BASE_DIR / 'data' / 'database' / f'{keyword}'
+        history_path  = cls.BASE_DIR / 'data' / 'history' / f'{keyword}.pkl'
             
         if not history_path.is_file() or not database_path.is_file():
             

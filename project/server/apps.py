@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from server.modules.set_template import SetTemplate
 from llm_model.llama2_answer import LangchainPipline
 from project.server.modules.chain_pipeline import ChainPipe
-from server.modules.vectordb_pipeline import embedding_and_store
+from server.modules.vectordb_pipeline import VectorPipeline
 
 
 class Quest(BaseModel):
@@ -31,6 +31,7 @@ class FastApiServer:
         self.router.add_api_route("/answer/{keyword}", self.answer, methods=["POST"])
         self.router.add_api_route("/llama/{question}", self.llama_answer, methods=["GET"]) # 추후 크롤링 파이프라인에 맞게 재조정(url호출 시 파이프라인 진행)
         self.router.add_api_route("/start_crawl/{keyword}", self.start_crawl, methods=["GET"])
+        self.router.add_api_route("/vectordb/{method}/{keyword}", self.manage_vectordb, methods=["GET"])
         self.router.add_api_route("/my_template/{llm}/{my_template}", self.set_my_template, methods=["GET"])
         
         # self.router.add_api_route("/faiss/{faiss_method 호출}", self.llama_answer, methods=["GET"])
@@ -62,24 +63,29 @@ class FastApiServer:
         
         return history_conversation
     
-    async def set_my_template(self, llm, my_template):
+    async def set_my_template(self, # llm에 따라 저장하는 템플릿 방식 나눔. (llama2, chatgpt)
+                              llm,  
+                              my_template):
         st = SetTemplate(llm)
         st.edit(my_template)
         
-        # llm에 따라 저장하는 템플릿 방식 나눔.
-        # llama2, chatgpt
         
     def llama_answer(self, 
-                    question,
-                    ): # 임시. 테스트로 두고 크롤링 파이프라인 개발하면 삭제할 예정
+                     question,
+                     ): # 임시. 테스트로 두고 크롤링 파이프라인 개발하면 삭제할 예정
         
         self.lp = LangchainPipline()
         result = self.lp.chain(question = question)
         
-        
         return result
+    
+    def manage_vectordb(self, method, keyword):
+        if method == 'delete':
+            VectorPipeline.delete_store_by_keyword(keyword = keyword)
         
-    async def start_crawl(self, keyword):
+        
+    async def start_crawl(self, 
+                          keyword):
         # 1. spider 일괄 실행하는 함수 제작(crawl_main()), keyword 함께 넘겨주기
         # 1-1. 구글 플레이스토어 리뷰
         # 1-2. 가능하면) 유튜브 영상 파싱, 해당영상 댓글 
@@ -95,5 +101,10 @@ class FastApiServer:
         # 5. df 순차적으로 loop
         
         # 6. [loop] 임베딩 및 vectordb에 저장
+        # VectorPipeline.embedding_and_store(data = data,
+        #                                    keyword = ''
+        #                                    target_col=''
+        #                                    embedding='',
+        #                                    )
         
         pass
