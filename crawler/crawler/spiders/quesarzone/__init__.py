@@ -1,0 +1,1 @@
+from .quesarzone import QuesarzoneSpider
