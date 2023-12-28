@@ -2,6 +2,7 @@ from fastapi import APIRouter
 from pydantic import BaseModel
 import os
 from pathlib import Path
+import shutil
 
 from project.server.modules.chainpipe import ChainPipe
 from server.modules.set_template import SetTemplate
@@ -30,6 +31,7 @@ class FastApiServer:
         self.router.add_api_route("/start_crawl/{keyword}", self.start_crawl, methods=["GET"])
         self.router.add_api_route("/hist/{keyword}", self.hist, methods=["GET"])
         self.router.add_api_route("/", self.chat_list, methods=["GET"])
+        self.router.add_api_route("/delete/{keyword}", self.delete, methods=["GET"])
         
         # self.router.add_api_route("/faiss/{faiss_method 호출}", self.llama_answer, methods=["GET"])
 
@@ -58,6 +60,16 @@ class FastApiServer:
         print(l)
         return l
     
+    async def delete(self,keyword: str):
+        database_path = Path(__file__).parent.parent / 'data' / 'database' / f'{keyword}'
+        history_path = Path(__file__).parent.parent / 'data' / 'history' / f'{keyword}.pkl'
+        if not os.path.isfile(history_path) or not os.path.isdir(database_path):
+            return {"status" : "abnormal delete request"}
+        else:
+            shutil.rmtree(database_path)
+            os.remove(history_path)
+            return {"status" : "delete success"}
+        
     async def set_my_template(self, llm, my_template):
         st = SetTemplate(llm)
         st.edit(my_template)

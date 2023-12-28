@@ -20,8 +20,9 @@ from langchain_core.runnables import RunnablePassthrough, RunnableLambda
 class ChainPipe():
     
     def __init__(self,keyword):
-        self.history_path = Path(__file__).parent.parent.parent / 'data' / 'history' / f'{keyword}.pkl'
-        self.database_path = Path(__file__).parent.parent.parent / 'data' / 'database' / f'{keyword}'
+        self.base = Path(__file__).parent.parent.parent / 'data'
+        self.history_path = self.base / 'history' / f'{keyword}.pkl'
+        self.database_path = self.base / 'database' / f'{keyword}'
         self.memory = None
         
     def load_history(self):
@@ -37,6 +38,8 @@ class ChainPipe():
 
     def make_chain(self):
         #stream_it = AsyncIteratorCallbackHandler()
+        self.DOCUMENT_PROMPT = open(self.base / 'templates' / 'chatgpt' / 'prom2.txt','r',encoding='UTF8').read()
+        self.ANSWER_PROMPT = open(self.base / 'templates' / 'chatgpt' / 'answer_prompt.txt','r',encoding='UTF8').read()
         if not self.memory:
             self.memory = self.load_history()
         # 1. 채팅 기록 불러오기 : loaded_memory 부분
@@ -85,13 +88,10 @@ class ChainPipe():
 
         #4. 최종 답하는 부분 : answer 부분
         # context를 참조해 한국어로 질문에 답변하는 템플릿
-        template = """Guess the answer in korean about the question by referring the following context,:{context}
-
-        Question: {question}
-        """
+        template = self.ANSWER_PROMPT
         ANSWER_PROMPT = ChatPromptTemplate.from_template(template)
 
-        DEFAULT_DOCUMENT_PROMPT = PromptTemplate.from_template(template="{page_content}")
+        DEFAULT_DOCUMENT_PROMPT = PromptTemplate.from_template(template=self.DOCUMENT_PROMPT)
 
         def _combine_documents(docs, document_prompt=DEFAULT_DOCUMENT_PROMPT, document_separator="\n\n"):
             doc_strings = [format_document(doc, document_prompt) for doc in docs]
@@ -124,3 +124,17 @@ class ChainPipe():
             d['conversation'].append({'question':temp[2*i].content,'answer': temp[2*i+1].content})
         #j = json.dumps(d,ensure_ascii=False, indent=3)
         return d
+
+    def memory_load_k(self, k:int):
+        if not self.memory:
+            self.memory = self.load_history()
+        temp = self.memory.load_memory_variables({})['history']
+        N_con = len(temp)//2
+        if k >= N_con:
+            return self.memory
+        else:
+            memory_k = ConversationBufferMemory(return_messages=True, output_key="answer", input_key="question")
+            for i in range(N_con-k,N_con):
+                memory_k.save_context({"question": temp[2*i].content},{"answer": temp[2*i+1].content})
+            
+            return memory_k
