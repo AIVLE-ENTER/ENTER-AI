@@ -1,3 +1,4 @@
+import os
 import pickle
 from pathlib import Path
 from operator import itemgetter
@@ -16,43 +17,30 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough, RunnableLambda
 
 
-class ChainPipeline():
+class ChainPipe():
     
-    def __init__(self, 
-                 user_id:str, 
-                 keyword:str):
-        self.BASE_DIR          = Path(__file__).parent.parent.parent / 'user_data' / user_id 
-        self.history_path  = self.BASE_DIR / 'history' / keyword / f'{keyword}.pkl'
-        self.database_path = self.BASE_DIR / 'database' / keyword
-        self.memory        = None
-        
+    def __init__(self, keyword):
+        self.BASE = Path(__file__).parent.parent.parent / 'data' / 'templates' / 'chatgpt' 
+        self.history_path = self.BASE / 'history' / keyword / f'{keyword}.pkl'
+        self.database_path = self.BASE / 'database' / f'{keyword}'
+        self.memory = None
         
     def load_history(self):
-        if self.history_path.is_file():
-            with open(self.history_path,'rb') as f: #경로예시 : ./data/history/m.txt
+        if os.path.isfile(self.history_path):
+            with open(self.history_path,'rb') as f:      #경로예시 : ./data/history/m.txt
                 memory = pickle.load(f)
         else:
             memory = ConversationBufferMemory(
-                return_messages = True, 
-                output_key      = "answer", 
-                input_key       = "question"
-                )
-            
+                return_messages=True, output_key="answer", input_key="question"
+            )
         self.memory = memory
-        
         return memory
-    
-    
-    def save_history(self):
-        with open(self.history_path,'wb') as f:
-            pickle.dump(self.memory,f)
 
-
-    def load_chain(self):
+    def make_chain(self):
         #stream_it = AsyncIteratorCallbackHandler()
-        self.DOCUMENT_PROMPT = open(self.BASE_DIR / 'templates' / 'chatgpt' / 'chatgpt_prompt_template.txt', 'r', encoding='UTF8').read()
-        self.ANSWER_PROMPT = open(self.BASE_DIR / 'templates' / 'chatgpt' / 'chatgpt_answer_template.txt', 'r', encoding='UTF8').read()
-        # load_template으로
+        self.DOCUMENT_PROMPT = open(self.BASE / 'prom2.txt','r', encoding='UTF8').read()
+        self.ANSWER_PROMPT = open(self.BASE / 'answer_prompt.txt','r', encoding='UTF8').read()
+        
         if not self.memory:
             self.memory = self.load_history()
         # 1. 채팅 기록 불러오기 : loaded_memory 부분
@@ -61,6 +49,7 @@ class ChainPipeline():
         loaded_memory = RunnablePassthrough.assign(
             chat_history=RunnableLambda(self.memory.load_memory_variables) | itemgetter("history"),
         )
+        
         
         #2. 채팅기록과 현재 입력으로 새로운 입력 생성  : standalone_question 부분
         # chat_history와 현재 question을 이용해 질문 생성하는 템플릿
@@ -84,19 +73,18 @@ class ChainPipeline():
         }
         
         #3. 벡터DB에서 불러오기 : retrieved_documents 부분
-        vectorstore = FAISS.load_local(self.database_path, 
-                                       embeddings=OpenAIEmbeddings()) #./data/database/faiss_index
+        vectorstore = FAISS.load_local(self.database_path, embeddings=OpenAIEmbeddings()) #./data/database/faiss_index
         retriever = vectorstore.as_retriever()#(search_kwargs={"k": 50})
 
         retriever_from_llm = MultiQueryRetriever.from_llm(
-            retriever = retriever, 
-            llm       = ChatOpenAI(temperature=0),
+            retriever=retriever, llm=ChatOpenAI(temperature=0),
         )
         # Now we retrieve the documents
         retrieved_documents = {
             "docs": itemgetter("standalone_question") | retriever_from_llm,
             "question": lambda x: x["standalone_question"],
         }
+
 
         #4. 최종 답하는 부분 : answer 부분
         # context를 참조해 한국어로 질문에 답변하는 템플릿
@@ -105,10 +93,8 @@ class ChainPipeline():
 
         DEFAULT_DOCUMENT_PROMPT = PromptTemplate.from_template(template=self.DOCUMENT_PROMPT)
 
-
         def _combine_documents(docs, document_prompt=DEFAULT_DOCUMENT_PROMPT, document_separator="\n\n"):
             doc_strings = [format_document(doc, document_prompt) for doc in docs]
-            
             return document_separator.join(doc_strings)
 
         # Now we construct the inputs for the final prompt
@@ -128,35 +114,27 @@ class ChainPipeline():
         
         return final_chain
     
-    
     def conversation_json(self):
         if not self.memory:
             self.memory = self.load_history()
-            
         temp = self.memory.load_memory_variables({})['history']
         n=len(temp)//2
         d={'n': n, 'conversation':[]}
-        
         for i in range(n):
             d['conversation'].append({'question':temp[2*i].content,'answer': temp[2*i+1].content})
         #j = json.dumps(d,ensure_ascii=False, indent=3)
         return d
 
-
     def memory_load_k(self, k:int):
         if not self.memory:
             self.memory = self.load_history()
-            
         temp = self.memory.load_memory_variables({})['history']
         N_con = len(temp)//2
-        
         if k >= N_con:
             return self.memory
         else:
-            memory_k = ConversationBufferMemory(return_messages = True, 
-                                                output_key      = "answer", 
-                                                input_key       = "question")
-            for i in range(N_con-k, N_con):
+            memory_k = ConversationBufferMemory(return_messages=True, output_key="answer", input_key="question")
+            for i in range(N_con-k,N_con):
                 memory_k.save_context({"question": temp[2*i].content},{"answer": temp[2*i+1].content})
             
             return memory_k

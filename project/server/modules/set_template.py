@@ -3,10 +3,12 @@ from pathlib import Path
 
 class SetTemplate():
     
-    def __init__(self, llm) -> None:
+    def __init__(self, 
+                 user_id: str, 
+                 llm: str) -> None:
         
-        self.target_llm = llm
-        self._BASE_SAVE_DIR = Path(__file__).parent.parent.parent / 'data' / 'templates' / llm / f'{llm}_template.txt'
+        self.target_llm     = llm
+        self._BASE_SAVE_DIR = Path(__file__).parent.parent.parent / 'user_data' / user_id / 'templates' / llm / f'{llm}_template.txt'
         self.check_llm_attr(llm)
         
     @property
@@ -22,14 +24,14 @@ class SetTemplate():
     def edit(self, new_prompt_template): # SetTemplate 초기화 시 입력한 llm을 통해 llama 또는 chatgpt template설정 가능. 
 
         my_template = getattr(self, f'_{self.target_llm}_template')(new_prompt_template)
-        self._save_template(my_template=my_template)
+        self._save_template(my_template = my_template)
             
     def check_llm_attr(self, target_llm):
         is_dir = [element.stem for element in self._BASE_SAVE_DIR.parent.parent.iterdir()]
         if target_llm in is_dir:
             return True
         else:    
-            raise ValueError(f'not in {is_dir}')
+            print(f'does not exist in the list. {is_dir}')
         
     def _llama_template(self, new_system_prompt) -> str: # 크롤러 분류 시 필요한 메서드
             B_INST, E_INST = "[INST]", "[/INST]"
@@ -54,7 +56,7 @@ class SetTemplate():
         return template
     
 if __name__ =="__main__":
-    st = SetTemplate('llama')
+    st = SetTemplate('asdf123','llama')
     # st.edit('안녕하세요')
     print(st.load_template())
     

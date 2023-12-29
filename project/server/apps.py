@@ -1,12 +1,11 @@
 import os
-import shutil
 from pathlib import Path
 from fastapi import APIRouter
 from pydantic import BaseModel
 
 from server.modules.set_template import SetTemplate
 from llm_model.llama2_answer import LangchainPipline
-from project.server.modules.chain_pipeline import ChainPipe
+from server.modules.chain_pipeline import ChainPipeline
 from server.modules.vectordb_pipeline import VectorPipeline
 
 
@@ -22,51 +21,62 @@ class Topic(BaseModel):
 class FastApiServer:
     
     def __init__(self):
+        
         self.router = APIRouter()
         self.register_routes()
         
     def register_routes(self):
+        
         self.router.add_api_route("/", self.chat_list, methods=["GET"])
-        self.router.add_api_route("/hist/{keyword}", self.history, methods=["GET"])
-        self.router.add_api_route("/answer/{keyword}", self.answer, methods=["POST"])
+        self.router.add_api_route("/hist/{user_id}/{keyword}", self.history, methods=["GET"])
+        self.router.add_api_route("/answer/{user_id}/{keyword}", self.answer, methods=["POST"])
         self.router.add_api_route("/llama/{question}", self.llama_answer, methods=["GET"]) # 추후 크롤링 파이프라인에 맞게 재조정(url호출 시 파이프라인 진행)
-        self.router.add_api_route("/start_crawl/{keyword}", self.start_crawl, methods=["GET"])
-        self.router.add_api_route("/vectordb/{method}/{keyword}", self.manage_vectordb, methods=["GET"])
-        self.router.add_api_route("/my_template/{llm}/{my_template}", self.set_my_template, methods=["GET"])
+        self.router.add_api_route("/start_crawl/{user_id}/{keyword}", self.start_crawl, methods=["GET"])
+        self.router.add_api_route("/vectordb/{user_id}/{method}/{keyword}", self.manage_vectordb, methods=["GET"])
+        self.router.add_api_route("/my_template/{user_id}/{llm}/{my_template}", self.set_my_template, methods=["GET"])
         
         # self.router.add_api_route("/faiss/{faiss_method 호출}", self.llama_answer, methods=["GET"])
 
-    async def chat_list(self):
-        chat_list_path = Path(__file__).parent.parent / 'data' / 'database'
+    async def chat_list(self, user_id: str):
+        
+        chat_list_path = Path(__file__).parent.parent / 'user_data' / user_id / 'database'
         chatlist = os.listdir(chat_list_path)
-        print(chatlist)
         
         return chatlist
     
-    async def answer(self, 
-                     keyword:str, 
-                     item:Quest):
+    async def answer(self,
+                     user_id: str,
+                     keyword: str, 
+                     item: Quest):
         
-        chainpipe = ChainPipe(keyword)
-        memory    = chainpipe.load_history()
-        chain     = chainpipe.make_chain()
-        input     = {'question': item.question}
-        result    = chain.invoke(input)
-        memory.save_context(input, {"answer" : result["answer"].content})
-        # with open(chainpipe.history_path,'wb') as f:
-        #     pickle.dump(memory,f)
+        chainpipe = ChainPipeline(user_id = user_id, 
+                                  keyword = keyword)
+        history = chainpipe.load_history()
+        chain   = chainpipe.load_chain()
+        input   = {'question': item.question}
+        result  = chain.invoke(input)
+        history.save_context(input, {"answer" : result["answer"].content})
+        chainpipe.save_history()
+        
         return result
     
-    async def history(self, keyword: str):
-        chainpipe            = ChainPipe(keyword)
+    async def history(self, 
+                      user_id, 
+                      keyword:str):
+        
+        chainpipe = ChainPipeline(user_id = user_id,
+                                  keyword = keyword)
         history_conversation = chainpipe.conversation_json()
         
         return history_conversation
     
     async def set_my_template(self, # llm에 따라 저장하는 템플릿 방식 나눔. (llama2, chatgpt)
-                              llm,  
+                              llm,
+                              user_id:str,
                               my_template):
-        st = SetTemplate(llm)
+        
+        st = SetTemplate(user_id = user_id,
+                         llm     = llm)
         st.edit(my_template)
         
         
@@ -79,13 +89,20 @@ class FastApiServer:
         
         return result
     
-    def manage_vectordb(self, method, keyword):
+    def manage_vectordb(self, 
+                        user_id: str, 
+                        method, 
+                        keyword: str):
+
         if method == 'delete':
-            VectorPipeline.delete_store_by_keyword(keyword = keyword)
+            VectorPipeline.delete_store_by_keyword(user_id = user_id,
+                                                   keyword = keyword)
+
+                    
+    async def start_crawl(self,
+                          user_id: str,
+                          keyword: str):
         
-        
-    async def start_crawl(self, 
-                          keyword):
         # 1. spider 일괄 실행하는 함수 제작(crawl_main()), keyword 함께 넘겨주기
         # 1-1. 구글 플레이스토어 리뷰
         # 1-2. 가능하면) 유튜브 영상 파싱, 해당영상 댓글 
