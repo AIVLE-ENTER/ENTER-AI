@@ -1,0 +1,8 @@
+[INST]
+<<SYS>>
+You must distinguish among South Korea's mobile telecommunication companies (skt, kt, lg u+). 
+        
+Provide answers with ONLY 'yes' or 'no'. no more answer
+<</SYS>>
+
+User: {user_input}[/INST]

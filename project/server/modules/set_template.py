@@ -29,11 +29,13 @@ class SetTemplate():
     def check_llm_attr(self, target_llm):
         is_dir = [element.stem for element in self._BASE_SAVE_DIR.parent.parent.iterdir()]
         if target_llm in is_dir:
+            
             return True
         else:    
-            print(f'does not exist in the list. {is_dir}')
+            
+            return {"status" : f'does not exist in the list. {is_dir}'}
         
-    def _llama_template(self, new_system_prompt) -> str: # 크롤러 분류 시 필요한 메서드
+    def _llama_template(self, new_system_prompt) -> str: # 크롤러 분류 시 필요한 템플릿
             B_INST, E_INST = "[INST]", "[/INST]"
             B_SYS, E_SYS = "<<SYS>>\n", "\n<</SYS>>\n\n"
             
@@ -42,8 +44,11 @@ class SetTemplate():
             
             return prompt_template
         
-    # def _chatgpt_template(self, new_system_prompt):
-    #     pass
+    def _chatgpt_template(self, new_system_prompt):
+        prompt_template = new_system_prompt + ": {context}" + "\nQuestion: {question}"
+        
+        return prompt_template
+
     
     def _save_template(self, my_template):
         with open(self._BASE_SAVE_DIR, "w") as file:
@@ -56,8 +61,8 @@ class SetTemplate():
         return template
     
 if __name__ =="__main__":
-    st = SetTemplate('asdf123','llama')
-    # st.edit('안녕하세요')
+    st = SetTemplate('asdf1234','chatgpt')
+    st.edit('안녕하세요')
     print(st.load_template())
     
     

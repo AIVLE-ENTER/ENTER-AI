@@ -3,6 +3,7 @@ from pathlib import Path
 from fastapi import APIRouter
 from pydantic import BaseModel
 from fastapi.responses import StreamingResponse
+from langchain.embeddings import OpenAIEmbeddings
 
 from server.modules.set_template import SetTemplate
 from llm_model.llama2_answer import LangchainPipline
@@ -52,18 +53,18 @@ class FastApiServer:
                      item: Quest,
                      stream: bool):
         
-        chainpipe = ChainPipeline(user_id = user_id, 
+        chainpipe       = ChainPipeline(user_id = user_id, 
                                   keyword = keyword)
-        history   = chainpipe.load_history()
-        chain     = chainpipe.load_chain()
-        input     = {'question': item.question}
-        result    = chain.invoke(input)
+        history         = chainpipe.load_history()
+        chain           = chainpipe.load_chain()
+        response_input  = {'question': item.question}
+        result          = chain.invoke(response_input)
         
-        history.save_context(input, {"answer" : result["answer"].content})
+        history.save_context(response_input, {"answer" : result["answer"].content})
         chainpipe.save_history()
         
         if stream == True:
-            return StreamingResponse(content    = chainpipe.streaming(chain, input), 
+            return StreamingResponse(content    = chainpipe.streaming(chain, response_input), 
                                      media_type = "text/event-stream")
         else:
             return result
@@ -116,7 +117,8 @@ class FastApiServer:
         
         # 1. spider 일괄 실행하는 함수 제작(crawl_main()), keyword 함께 넘겨주기
         # 1-1. 구글 플레이스토어 리뷰
-        # 1-2. 가능하면) 유튜브 영상 파싱, 해당영상 댓글 
+        # 1-2. 가능하면) 유튜브 영상 파싱
+        # (bard에 유튜브url입력하면 영상 요약해줌. 근데 bard는 api제공 안됨. 유저들이 만든 라이브러리 써야함), 해당영상 댓글 
         
         # 2. scarpy에서 수집된 데이터 df로 저장 하는 로직(각 데이터프레임은 keyword+사이트명+날짜로 관리)
         
@@ -126,10 +128,18 @@ class FastApiServer:
         # lp = LangchainPipline()
         # result = lp.chain(question = df['data'])
         
+        import pandas as pd
         # 5. df 순차적으로 loop
-        
+        data = pd.read_excel('/home/wsl_han/aivle_project/remote/ENTER-AI/review_data/naver_review/naver_review_goldpig.xlsx')
         # 6. [loop] 임베딩 및 vectordb에 저장
+        VectorPipeline.embedding_and_store(data = data,
+                                           user_id = user_id,
+                                           keyword = 'goldpig',
+                                           target_col='리뷰',
+                                           embedding=OpenAIEmbeddings(),
+                                           ) # TODO: 벡터디비 만들 때 templates폴더 함께 만들어줘야함
         # VectorPipeline.embedding_and_store(data = data,
+        #                                    user_id = user_id
         #                                    keyword = ''
         #                                    target_col=''
         #                                    embedding='',

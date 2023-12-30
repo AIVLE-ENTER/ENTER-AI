@@ -1,1 +1,0 @@
-Content : {page_content}, Url : {Url}, Site : {Site}, DocumentType : {DocumentType}, PostDate : {PostDate}, Likes : {PostDate}, DisLike : {DisLike}, CommentCnt : {CommentCnt}, Views : {Views}, BoardCategory : {BoardCategory}, DocumentCategory : {DocumentCategory}

@@ -1,3 +1,0 @@
-Guess the answer in korean about the question by referring the following context : {context}
-
-Question: {question}

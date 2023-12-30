@@ -1,3 +1,4 @@
+import os
 import pickle
 from pathlib import Path
 from operator import itemgetter
@@ -15,6 +16,7 @@ from langchain_core.messages import get_buffer_string
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough, RunnableLambda
 
+# TODO: 리뷰 8개만 참고함. 임베딩 시 또는 훑을 때 어떻게 되는지 봐야함
 
 class ChainPipeline():
     
@@ -45,19 +47,25 @@ class ChainPipeline():
     
     
     def save_history(self):
+        if self.history_path.is_file() == False:
+            os.makedirs(self.history_path.parent, exist_ok=True)
+            
         with open(self.history_path,'wb') as f:
             pickle.dump(self.memory,f)
 
 
     def load_chain(self):
         #stream_it = AsyncIteratorCallbackHandler()
-        self.DOCUMENT_PROMPT = open(self.BASE_DIR / 'templates' / 'chatgpt' / 'chatgpt_prompt_template.txt', 'r', encoding='UTF8').read()
-        self.ANSWER_PROMPT = open(self.BASE_DIR / 'templates' / 'chatgpt' / 'chatgpt_answer_template.txt', 'r', encoding='UTF8').read()
-        # load_template으로
+        chain_path = self.BASE_DIR / 'templates' / 'chatgpt' 
+        self.DOCUMENT_PROMPT = open(chain_path / 'chatgpt_prompt_template.txt', 'r', encoding='UTF8').read()
+        self.ANSWER_PROMPT = open(chain_path / 'chatgpt_template.txt', 'r', encoding='UTF8').read()
+        
         if not self.memory:
             self.memory = self.load_history()
         # 1. 채팅 기록 불러오기 : loaded_memory 부분
         # 기록있으면 불러오고 없으면 비어있는 ConversationBufferMemory 생성
+        
+        
 
         loaded_memory = RunnablePassthrough.assign(
             chat_history=RunnableLambda(self.memory.load_memory_variables) | itemgetter("history"),
@@ -85,8 +93,8 @@ class ChainPipeline():
         }
         
         #3. 벡터DB에서 불러오기 : retrieved_documents 부분
-        vectorstore = FAISS.load_local(self.database_path, 
-                                       embeddings=OpenAIEmbeddings()) #./data/database/faiss_index
+        vectorstore = FAISS.load_local(folder_path = self.database_path, 
+                                       embeddings  = OpenAIEmbeddings()) #./data/database/faiss_index
         retriever = vectorstore.as_retriever()#(search_kwargs={"k": 50})
 
         retriever_from_llm = MultiQueryRetriever.from_llm(
