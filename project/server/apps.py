@@ -95,7 +95,7 @@ class FastApiServer:
                         keyword: str):
 
         if method == 'delete':
-            VectorPipeline.delete_store_by_keyword(user_id = user_id,
+            return VectorPipeline.delete_store_by_keyword(user_id = user_id,
                                                    keyword = keyword)
 
                     

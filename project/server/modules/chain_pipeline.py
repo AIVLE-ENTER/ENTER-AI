@@ -25,7 +25,8 @@ class ChainPipeline():
         self.history_path  = self.BASE_DIR / 'history' / keyword / f'{keyword}.pkl'
         self.database_path = self.BASE_DIR / 'database' / keyword
         self.memory        = None
-        
+        self.user_id = user_id
+        self.keyword = keyword
         
     def load_history(self):
         if self.history_path.is_file():
@@ -135,12 +136,12 @@ class ChainPipeline():
             
         temp = self.memory.load_memory_variables({})['history']
         n=len(temp)//2
-        d={'n': n, 'conversation':[]}
+        conversation = {'n': n, 'conversation':[]}
         
         for i in range(n):
-            d['conversation'].append({'question':temp[2*i].content,'answer': temp[2*i+1].content})
+            conversation['conversation'].append({'history_id': f'{self.user_id}_{self.keyword}_{i}','question':temp[2*i].content,'answer': temp[2*i+1].content})
         #j = json.dumps(d,ensure_ascii=False, indent=3)
-        return d
+        return conversation
 
 
     def memory_load_k(self, k:int):
