@@ -21,12 +21,12 @@ class ChainPipeline():
     def __init__(self, 
                  user_id:str, 
                  keyword:str):
-        self.BASE_DIR          = Path(__file__).parent.parent.parent / 'user_data' / user_id 
+        self.BASE_DIR      = Path(__file__).parent.parent.parent / 'user_data' / user_id 
         self.history_path  = self.BASE_DIR / 'history' / keyword / f'{keyword}.pkl'
         self.database_path = self.BASE_DIR / 'database' / keyword
         self.memory        = None
-        self.user_id = user_id
-        self.keyword = keyword
+        self.user_id       = user_id
+        self.keyword       = keyword
         
     def load_history(self):
         if self.history_path.is_file():
@@ -158,6 +158,15 @@ class ChainPipeline():
                                                 output_key      = "answer", 
                                                 input_key       = "question")
             for i in range(N_con-k, N_con):
-                memory_k.save_context({"question": temp[2*i].content},{"answer": temp[2*i+1].content})
+                memory_k.save_context({"question": temp[2 * i].content},
+                                      {"answer": temp[2 * i+1].content})
             
             return memory_k
+        
+        
+    def streaming(self, chain, input):
+        import time
+        for stream in chain.stream(input):
+            current_time = time.strftime("%Y-%m-%d %H:%M:%S").encode('utf-8')
+            
+            yield "data: " + stream['answer'].content + str(current_time) + '\n\n'

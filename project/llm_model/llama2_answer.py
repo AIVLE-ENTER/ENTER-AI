@@ -9,12 +9,13 @@ from server.modules.set_template import SetTemplate
 
 class LangchainPipline():
     
-    def __init__(self, 
+    def __init__(self,
+                 user_id,
                  model_path = "TheBloke/Llama-2-13B-Chat-GPTQ"):
         
         self.model_path = model_path
-        #self.pipe = 
-        self.template = SetTemplate('llama')
+        self.user_id    = user_id
+        self.template   = SetTemplate(user_id,'llama')
         
     def chain(self, question):
         pipe = LlmPipeline(model_path = self.model_path)

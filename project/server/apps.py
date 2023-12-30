@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 from fastapi import APIRouter
 from pydantic import BaseModel
+from fastapi.responses import StreamingResponse
 
 from server.modules.set_template import SetTemplate
 from llm_model.llama2_answer import LangchainPipline
@@ -11,6 +12,7 @@ from server.modules.vectordb_pipeline import VectorPipeline
 
 class Quest(BaseModel):
     question: str
+    
 
 class UserOut(BaseModel):
     answer: str
@@ -28,9 +30,9 @@ class FastApiServer:
     def register_routes(self):
         
         self.router.add_api_route("/", self.chat_list, methods=["GET"])
-        self.router.add_api_route("/hist/{user_id}/{keyword}", self.history, methods=["GET"])
-        self.router.add_api_route("/answer/{user_id}/{keyword}", self.answer, methods=["POST"])
-        self.router.add_api_route("/llama/{question}", self.llama_answer, methods=["GET"]) # 추후 크롤링 파이프라인에 맞게 재조정(url호출 시 파이프라인 진행)
+        self.router.add_api_route("/history/{user_id}/{keyword}", self.history, methods=["GET"])
+        self.router.add_api_route("/answer/{user_id}/{keyword}/{stream}", self.answer, methods=["POST"])
+        self.router.add_api_route("/llama/{user_id}/{question}", self.llama_answer, methods=["GET"]) # 추후 크롤링 파이프라인에 맞게 재조정(url호출 시 파이프라인 진행)
         self.router.add_api_route("/start_crawl/{user_id}/{keyword}", self.start_crawl, methods=["GET"])
         self.router.add_api_route("/vectordb/{user_id}/{method}/{keyword}", self.manage_vectordb, methods=["GET"])
         self.router.add_api_route("/my_template/{user_id}/{llm}/{my_template}", self.set_my_template, methods=["GET"])
@@ -47,18 +49,24 @@ class FastApiServer:
     async def answer(self,
                      user_id: str,
                      keyword: str, 
-                     item: Quest):
+                     item: Quest,
+                     stream: bool):
         
         chainpipe = ChainPipeline(user_id = user_id, 
                                   keyword = keyword)
-        history = chainpipe.load_history()
-        chain   = chainpipe.load_chain()
-        input   = {'question': item.question}
-        result  = chain.invoke(input)
+        history   = chainpipe.load_history()
+        chain     = chainpipe.load_chain()
+        input     = {'question': item.question}
+        result    = chain.invoke(input)
+        
         history.save_context(input, {"answer" : result["answer"].content})
         chainpipe.save_history()
         
-        return result
+        if stream == True:
+            return StreamingResponse(content    = chainpipe.streaming(chain, input), 
+                                     media_type = "text/event-stream")
+        else:
+            return result
     
     async def history(self, 
                       user_id, 
@@ -81,22 +89,25 @@ class FastApiServer:
         
         
     def llama_answer(self, 
+                     user_id,
                      question,
                      ): # 임시. 테스트로 두고 크롤링 파이프라인 개발하면 삭제할 예정
         
-        self.lp = LangchainPipline()
-        result = self.lp.chain(question = question)
+        lp = LangchainPipline(user_id = user_id)
+        result = lp.chain(question = question)
         
         return result
     
+    
     def manage_vectordb(self, 
                         user_id: str, 
-                        method, 
+                        method,  # url에 method를 넣는게 아니라 http통신에서 method를 통해 가져오기
                         keyword: str):
 
         if method == 'delete':
+            
             return VectorPipeline.delete_store_by_keyword(user_id = user_id,
-                                                   keyword = keyword)
+                                                          keyword = keyword)
 
                     
     async def start_crawl(self,
@@ -113,7 +124,7 @@ class FastApiServer:
         # 3-1 이때, df 컬럼 획일화.         
         
         # lp = LangchainPipline()
-        # result = self.lp.chain(question = df['data'])
+        # result = lp.chain(question = df['data'])
         
         # 5. df 순차적으로 loop
         

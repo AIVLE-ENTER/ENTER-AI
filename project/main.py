@@ -9,7 +9,7 @@ origins = [
     "http://localhost:5500",
     "http://127.0.0.1:5500",
     "http://127.0.0.1:5501",
-]
+    ]
 
 def main():
     app = FastAPI(
@@ -19,11 +19,11 @@ def main():
     )
     
     app.add_middleware(
-        CORSMiddleware,
-        allow_origins=origins,
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        middleware_class  = CORSMiddleware,
+        allow_origins     = origins,
+        allow_credentials = True,
+        allow_methods     = ["*"],
+        allow_headers     = ["*"],
     )
 
     server = FastApiServer()
