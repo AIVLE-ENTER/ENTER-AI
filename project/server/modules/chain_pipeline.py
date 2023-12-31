@@ -29,6 +29,7 @@ class ChainPipeline():
         self.memory        = None
         self.user_id       = user_id
         self.keyword       = keyword
+        self.stream_history = None
         
     def load_history(self):
         if self.history_path.is_file():
@@ -172,6 +173,12 @@ class ChainPipeline():
             return memory_k
         
         
-    async def streaming(self, chain, input):
-        async for stream in chain.astream(input):
+    async def streaming(self, chain, query):
+        self.stream_history=''
+        async for stream in chain.astream(query):
+            self.stream_history += stream['answer'].content
+            #print(self.stream_history)
             yield stream['answer'].content
+        self.memory.save_context({"question" : query['question']}, {"answer" : self.stream_history})
+        self.save_history()
+        print({"question" : query['question'], "answer" : self.stream_history})

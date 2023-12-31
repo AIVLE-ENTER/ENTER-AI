@@ -4,6 +4,7 @@ from fastapi import APIRouter
 from pydantic import BaseModel
 from fastapi.responses import StreamingResponse
 from langchain.embeddings import OpenAIEmbeddings
+from contextlib import contextmanager
 
 from server.modules.set_template import SetTemplate
 from llm_model.llama2_answer import LangchainPipline
@@ -58,15 +59,15 @@ class FastApiServer:
         history         = chainpipe.load_history()
         chain           = chainpipe.load_chain()
         response_input  = {'question': item.question}
-        result          = chain.invoke(response_input)
-        
-        history.save_context(response_input, {"answer" : result["answer"].content})
-        chainpipe.save_history()
         
         if stream == True:
             return StreamingResponse(content    = chainpipe.streaming(chain, response_input), 
                                      media_type = "text/event-stream")
         else:
+            result = chain.invoke(response_input)
+            history.save_context(response_input, {"answer" : result["answer"].content})
+            chainpipe.memory = history
+            chainpipe.save_history()
             return result
     
     async def history(self, 
