@@ -172,9 +172,6 @@ class ChainPipeline():
             return memory_k
         
         
-    def streaming(self, chain, input):
-        import time
-        for stream in chain.stream(input):
-            current_time = time.strftime("%Y-%m-%d %H:%M:%S").encode('utf-8')
-            
-            yield "data: " + stream['answer'].content + str(current_time) + '\n\n'
+    async def streaming(self, chain, input):
+        async for stream in chain.astream(input):
+            yield stream['answer'].content
