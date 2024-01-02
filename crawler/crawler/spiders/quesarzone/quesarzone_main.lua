@@ -1,4 +1,4 @@
-wait_time = 0.05
+wait_time = 1
 patient_time = 10
 
 function wait_for(splash, selector)
@@ -17,5 +17,6 @@ function main(splash, args)
     wait_for(splash, 'footer')
 
     splash:set_viewport_full()
+    -- splash:runjs()
     return splash:html()
 end
