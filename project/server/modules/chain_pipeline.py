@@ -65,13 +65,13 @@ class ChainPipeline():
             self.memory = self.load_history()
         # 1. 채팅 기록 불러오기 : loaded_memory 부분
         # 기록있으면 불러오고 없으면 비어있는 ConversationBufferMemory 생성
+        memory_k = self.memory_load_k(5)
         
-        
-
         loaded_memory = RunnablePassthrough.assign(
-            chat_history=RunnableLambda(self.memory.load_memory_variables) | itemgetter("history"),
+            chat_history=RunnableLambda(memory_k.load_memory_variables) | itemgetter("history"),
         )
-        
+        #print(memory_k.load_memory_variables({}))
+        #print(len(memory_k.load_memory_variables({})['history']))
         #2. 채팅기록과 현재 입력으로 새로운 입력 생성  : standalone_question 부분
         # chat_history와 현재 question을 이용해 질문 생성하는 템플릿
         _template = """Given the following conversation and a follow up Input, rephrase the follow up Input to be a standalone Input, in its original language.
