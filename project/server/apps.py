@@ -50,7 +50,7 @@ class FastApiServer:
     
     async def answer(self,
                      user_id: str,
-                     keyword: str, 
+                     keyword: str,  
                      item: Quest,
                      stream: bool):
         
@@ -116,6 +116,8 @@ class FastApiServer:
                           user_id: str,
                           keyword: str):
         
+        ### 크롤링 시 redis를 활용한 메세지큐 구현 
+        
         # 1. spider 일괄 실행하는 함수 제작(crawl_main()), keyword 함께 넘겨주기
         # 1-1. 구글 플레이스토어 리뷰
         # 1-2. 가능하면) 유튜브 영상 파싱
@@ -131,14 +133,15 @@ class FastApiServer:
         
         import pandas as pd
         # 5. df 순차적으로 loop
-        data = pd.read_excel('/home/wsl_han/aivle_project/remote/ENTER-AI/review_data/naver_review/naver_review_goldpig.xlsx')
+        data = pd.read_csv('/home/wsl_han/aivle_project/remote/ENTER-AI/project/llm_model/kt.csv')
         # 6. [loop] 임베딩 및 vectordb에 저장
         VectorPipeline.embedding_and_store(data = data,
                                            user_id = user_id,
-                                           keyword = 'goldpig',
-                                           target_col='리뷰',
+                                           keyword = 'kt_internet',
+                                           target_col='comment',
                                            embedding=OpenAIEmbeddings(),
-                                           ) # TODO: 벡터디비 만들 때 templates폴더 함께 만들어줘야함
+                                           ) 
+        # TODO: 벡터디비 만들 때 templates폴더 함께 만들어줘야함
         # VectorPipeline.embedding_and_store(data = data,
         #                                    user_id = user_id
         #                                    keyword = ''

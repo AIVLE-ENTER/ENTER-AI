@@ -31,7 +31,7 @@ class VectorPipeline():
             
         else:
             vectorstore.save_local(folder_path = kwd_db_path, 
-                                   index_name  = keyword)
+                                   )
             
     @classmethod
     def delete_store_by_keyword(cls, 

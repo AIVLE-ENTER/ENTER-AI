@@ -1,6 +1,6 @@
 
 class CrawlerSettings:
-    
+
     __settings = {
         "DEBUG_LOCAL":{},
         "DEBUG_SELENIUM":{},
@@ -18,7 +18,7 @@ class CrawlerSettings:
             # Define the Splash DupeFilter
             "DUPEFILTER_CLASS": "scrapy_splash.SplashAwareDupeFilter",
             "HTTPCACHE_STORAGE": "scrapy_splash.SplashAwareFSCacheStorage",
-            
+
             "LOG_LEVEL": "INFO"
         },
         "SELENIUM_LOCAL":{
@@ -40,15 +40,14 @@ class CrawlerSettings:
             "DOWNLOADER_MIDDLEWARES"         : {
                 'crawlers.courses.middlewares.RemoteSeleniumMiddleware': 800
             },
-            
+
             "LOG_LEVEL": "INFO"
-                
+
         }
     }
 
     @classmethod
     def get(cls, tag="DEBUG_LOCAL"):
         return cls.__settings.get(tag)
-        
-        
-    
+
+
