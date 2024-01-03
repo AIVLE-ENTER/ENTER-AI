@@ -37,7 +37,9 @@ class FastApiServer:
         self.router.add_api_route("/llama/{user_id}/{question}", self.llama_answer, methods=["GET"]) # 추후 크롤링 파이프라인에 맞게 재조정(url호출 시 파이프라인 진행)
         self.router.add_api_route("/start_crawl/{user_id}/{keyword}", self.start_crawl, methods=["GET"])
         self.router.add_api_route("/vectordb/{user_id}/{method}/{keyword}", self.manage_vectordb, methods=["GET"])
-        self.router.add_api_route("/my_template/{user_id}/{llm}/{my_template}", self.set_my_template, methods=["GET"])
+        
+        self.router.add_api_route("/template/{task}/{user_id}/{llm}/{template_type}", self.set_my_template, methods=["GET"])
+        
         
         # self.router.add_api_route("/faiss/{faiss_method 호출}", self.llama_answer, methods=["GET"])
 
@@ -80,15 +82,23 @@ class FastApiServer:
         
         return history_conversation
     
-    async def set_my_template(self, # llm에 따라 저장하는 템플릿 방식 나눔. (llama2, chatgpt)
+    async def set_my_template(self, # llm에 따라 저장하는 템플릿 방식 나눔. (llama, chatgpt)
+                              task,
                               llm,
                               user_id:str,
-                              my_template):
+                              template_type):
         
         st = SetTemplate(user_id = user_id,
                          llm     = llm)
-        st.edit(my_template)
         
+        if task == 'load':
+            template = st.load(template_type = template_type)
+            
+            return template
+            
+        if task == 'edit':
+            st.edit() # post로 입력받기
+            
         
     def llama_answer(self, 
                      user_id,

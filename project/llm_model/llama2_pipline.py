@@ -1,7 +1,12 @@
+import pyrootutils
+pyrootutils.setup_root(search_from = __file__,
+                       indicator   = "README.md",
+                       pythonpath  = True)
+
 import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
 
-from project.utils.configs import param_config
+from project.utils.configs import ParamConfig
 
 class LlmPipeline():
     
@@ -14,7 +19,7 @@ class LlmPipeline():
 
         self.tokenizer = AutoTokenizer.from_pretrained(model_path, 
                                                        use_fast = True)       
-        self.params = param_config().llama.params
+        self.params = ParamConfig()
     
     def load(self):
         pipe =  pipeline(
@@ -23,12 +28,10 @@ class LlmPipeline():
                     tokenizer            = self.tokenizer,
                     torch_dtype          = torch.bfloat16,
                     device_map           = "auto",
-                    max_new_tokens       = self.params.max_new_tokens,
                     do_sample            = True,
-                    top_k                = self.params.top_k,
-                    num_return_sequences = self.params.num_return_sequences,
-                    eos_token_id         = self.tokenizer.eos_token_id
-        )
+                    eos_token_id         = self.tokenizer.eos_token_id,
+                    **self.params.llama.params
+                    )
         
         return pipe
       

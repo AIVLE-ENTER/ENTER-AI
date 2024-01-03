@@ -32,6 +32,14 @@ class SetTemplate():
     def set_base_dir(self, new_base_dir):
         
         self._BASE_SAVE_DIR = new_base_dir
+    
+    
+    def load(self, template_type:str):
+        config = self.params.load(self.base_save_dir/ 'configs.yaml')
+        
+        # return {'status' : config[self.target_llm]['templates'][template_type]}
+        return config[self.target_llm]['templates'][template_type]
+        
         
         
     def edit(self, **kwargs:Dict): # SetTemplate 초기화 시 입력한 llm을 통해 llama 또는 chatgpt template설정 가능. 

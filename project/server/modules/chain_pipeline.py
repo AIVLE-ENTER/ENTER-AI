@@ -1,3 +1,8 @@
+import pyrootutils
+pyrootutils.setup_root(search_from = __file__,
+                       indicator   = "README.md",
+                       pythonpath  = True)
+
 import os
 import pickle
 from pathlib import Path
