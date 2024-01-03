@@ -19,7 +19,7 @@ class SetTemplate():
         
         self.user_id        = user_id
         self.target_llm     = llm
-        self._BASE_SAVE_DIR = Path(__file__).parent.parent.parent / 'user_data' / user_id / 'templates'
+        self._BASE_SAVE_DIR = Path(__file__).parent.parent.parent / 'user_data' / user_id / 'template'
         self.params         = ParamConfig()
 
         
