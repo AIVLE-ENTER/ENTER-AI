@@ -16,6 +16,8 @@ from langchain_core.messages import get_buffer_string
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough, RunnableLambda
 
+from project.utils.configs import ParamConfig
+
 # TODO: 리뷰 8개만 참고함. 임베딩 시 또는 훑을 때 어떻게 되는지 봐야함
 
 class ChainPipeline():
@@ -23,13 +25,14 @@ class ChainPipeline():
     def __init__(self, 
                  user_id:str, 
                  keyword:str):
-        self.BASE_DIR      = Path(__file__).parent.parent.parent / 'user_data' / user_id 
-        self.history_path  = self.BASE_DIR / 'history' / keyword / f'{keyword}.pkl'
-        self.database_path = self.BASE_DIR / 'database' / keyword
-        self.memory        = None
-        self.user_id       = user_id
-        self.keyword       = keyword
+        self.BASE_DIR       = Path(__file__).parent.parent.parent / 'user_data' / user_id 
+        self.history_path   = self.BASE_DIR / 'history' / keyword / f'{keyword}.pkl'
+        self.database_path  = self.BASE_DIR / 'database' / keyword
+        self.memory         = None
+        self.user_id        = user_id
+        self.keyword        = keyword
         self.stream_history = None
+        # self.params         = param_config().chatgpt.params
         
     def load_history(self):
         if self.history_path.is_file():
@@ -100,7 +103,8 @@ class ChainPipeline():
 
         retriever_from_llm = MultiQueryRetriever.from_llm(
             retriever = retriever, 
-            llm       = ChatOpenAI(temperature=0),
+            llm       = ChatOpenAI(temperature = 0,
+                                   model       = self.params.model),
         )
         # Now we retrieve the documents
         retrieved_documents = {

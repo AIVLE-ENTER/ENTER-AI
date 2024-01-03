@@ -1,6 +1,8 @@
 import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
 
+from project.utils.configs import param_config
+
 class LlmPipeline():
     
     def __init__(self, model_path) -> None:
@@ -11,7 +13,8 @@ class LlmPipeline():
                                                           revision          = "main")
 
         self.tokenizer = AutoTokenizer.from_pretrained(model_path, 
-                                                       use_fast = True)
+                                                       use_fast = True)       
+        self.params = param_config().llama.params
     
     def load(self):
         pipe =  pipeline(
@@ -20,10 +23,10 @@ class LlmPipeline():
                     tokenizer            = self.tokenizer,
                     torch_dtype          = torch.bfloat16,
                     device_map           = "auto",
-                    max_new_tokens       = 500,
+                    max_new_tokens       = self.params.max_new_tokens,
                     do_sample            = True,
-                    top_k                = 30,
-                    num_return_sequences = 1,
+                    top_k                = self.params.top_k,
+                    num_return_sequences = self.params.num_return_sequences,
                     eos_token_id         = self.tokenizer.eos_token_id
         )
         

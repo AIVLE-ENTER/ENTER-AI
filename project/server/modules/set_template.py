@@ -1,15 +1,27 @@
+import pyrootutils
+pyrootutils.setup_root(search_from = __file__,
+                       indicator   = "README.md",
+                       pythonpath  = True)
+
+import os
+import shutil
 import pandas as pd
+from addict import Dict
 from pathlib import Path
 
+from project.utils.configs import ParamConfig 
+
 class SetTemplate():
-    
+    # 메서드 별로 llama: crawl_company, crawl_product
     def __init__(self, 
                  user_id: str, 
                  llm: str) -> None:
         
+        self.user_id        = user_id
         self.target_llm     = llm
-        self._BASE_SAVE_DIR = Path(__file__).parent.parent.parent / 'user_data' / user_id / 'templates' / llm / f'{llm}_template.txt'
-        self.check_llm_attr(llm)
+        self._BASE_SAVE_DIR = Path(__file__).parent.parent.parent / 'user_data' / user_id / 'templates'
+        self.params         = ParamConfig()
+
         
     @property
     def base_save_dir(self):
@@ -21,10 +33,14 @@ class SetTemplate():
         
         self._BASE_SAVE_DIR = new_base_dir
         
-    def edit(self, new_prompt_template): # SetTemplate 초기화 시 입력한 llm을 통해 llama 또는 chatgpt template설정 가능. 
-
-        my_template = getattr(self, f'_{self.target_llm}_template')(new_prompt_template)
-        self._save_template(my_template = my_template)
+        
+    def edit(self, **kwargs:Dict): # SetTemplate 초기화 시 입력한 llm을 통해 llama 또는 chatgpt template설정 가능. 
+        config = self.params.load(self.base_save_dir / 'config.yaml')
+        for key, item in kwargs.items():
+            config[key] = item
+        
+        self.params.save(config, self.base_save_dir)
+        
             
     def check_llm_attr(self, target_llm):
         is_dir = [element.stem for element in self._BASE_SAVE_DIR.parent.parent.iterdir()]
@@ -35,35 +51,77 @@ class SetTemplate():
             
             return {"status" : f'does not exist in the list. {is_dir}'}
         
-    def _llama_template(self, new_system_prompt) -> str: # 크롤러 분류 시 필요한 템플릿
+        
+    def crawl_template(self, **kwargs:Dict) -> str: # 크롤러 분류 시 필요한 템플릿
             B_INST, E_INST = "[INST]", "[/INST]"
             B_SYS, E_SYS = "<<SYS>>\n", "\n<</SYS>>\n\n"
             
-            SYSTEM_PROMPT = B_SYS + new_system_prompt + E_SYS
-            prompt_template =  B_INST + SYSTEM_PROMPT + "User: {user_input}" + E_INST
+            defatul_key_bind = kwargs[llm]['templates']['crawl']
             
-            return prompt_template
+            if kwargs.system == {}:
+                system = kwargs.system_default
+            else:
+                system = kwargs.system
+            
+            if (kwargs.company_info == {}) and (kwargs.product_info == {}):
+                info_template = f"\n\n{kwargs.company_info_default}\n\n{kwargs.product_info_default}"
+            else:
+                info_template = f"\n\n{kwargs.company_info}\n\n{kwargs.product_info}"
+                
+            SYSTEM_PROMPT = B_SYS + system + info_template + E_SYS
+            crawl_template =  B_INST + SYSTEM_PROMPT + "User: {user_input}" + E_INST
+            
+            return crawl_template
         
-    def _chatgpt_template(self, new_system_prompt):
-        prompt_template = new_system_prompt + ": {context}" + "\nQuestion: {question}"
         
-        return prompt_template
+    def converation_template(self, **kwargs:Dict): ## 다시 보기
+        
+        if (kwargs.prompt == {}) and (kwargs.system == {}):
+            system_prompt = kwargs.prompt_default
+            
+        else:
+            system_prompt = kwargs.prompt
+        
+        converation_template =  system_prompt + ": {context}" + "\nQuestion: {question}"
+        
+        
+        return converation_template
+    
+    
+    def report_template(self, **kwargs:Dict):
+        if (kwargs.prompt == {}) and (kwargs.system == {}):
+            report_template = f"{kwargs.system_default}\n\n{kwargs.prompt_default}"
+            
+        else:
+            report_template = f"{kwargs.system}\n\n{kwargs.prompt}"
+            
+        return report_template
+                    
+    
+    def set_initial_templates(self,):
+        
+        dst = self.base_save_dir
+        
+        if dst.is_dir() == False:
+            os.makedirs(name     = dst, 
+                        exist_ok = True)
+        
+        init_config = self.params.load()
+        self.params.save(init_config, dst)
 
-    
-    def _save_template(self, my_template):
-        with open(self._BASE_SAVE_DIR, "w") as file:
-            file.write(my_template)
-    
-    def load_template(self,):
-        with open(self._BASE_SAVE_DIR, "r") as file:
-            template = file.read()
-            
-        return template
-    
+        
 if __name__ =="__main__":
-    st = SetTemplate('asdf1234','chatgpt')
-    st.edit('안녕하세요')
-    print(st.load_template())
+    llm = 'chatgpt'
+    # st = SetTemplate('star1234',)
+    st = SetTemplate('star1234', llm)
+    # st.edit('안녕하세요')
+    # st.edit(param_config()[f'{llm}_template'])
+    # print(st.load_template())
+    # st.set_initial_templates()
+    a = ParamConfig().load('/home/wsl_han/aivle_project/remote/ENTER-AI/project/user_data/star1234/templates/config.yaml')
+    print(a.chatgpt.templates.conversation.prompt_default)
+    
+    
     
     
     
