@@ -17,7 +17,7 @@ class ParamConfig():
             path = self.INIT_CONFIG_PATH
             
         
-        with open(path, 'r') as file:
+        with open(path, 'r', encoding='utf-8') as file:
             data = yaml.safe_load(file)
         
         if addict == True:
@@ -54,7 +54,7 @@ class ParamConfig():
         if isinstance(dst, Path):
             dst = dst / endpoint
         
-        with open(dst, 'w') as file:
+        with open(dst, 'w', encoding='utf-8') as file:
             yaml.dump(data, file, allow_unicode=True)
 
         
