@@ -5,6 +5,7 @@ from langchain.llms.huggingface_pipeline import HuggingFacePipeline
 
 from llm_model.llama2_pipline import LlmPipeline
 from server.modules.set_template import SetTemplate
+from project.utils.configs import ParamConfig
 
 
 class LangchainPipline():
@@ -15,8 +16,9 @@ class LangchainPipline():
         
         self.model_path = model_path
         self.user_id    = user_id
-        self.template   = SetTemplate(user_id,'llama')
+        self.template   = SetTemplate(user_id)
         
+                
     def chain(self, question):
         pipe = LlmPipeline(model_path = self.model_path)
         llm = HuggingFacePipeline(pipeline     = pipe.load(),#self.pipe.load(), # 이렇게 하니까 모델을 다시 로드하긴 하지만 메모리는 정상적으로 차지함 
@@ -24,7 +26,7 @@ class LangchainPipline():
 
         prompt = PromptTemplate(
             input_variables = ["user_input"], 
-            template        = self.template.load_template()
+            template        = self.template.crawl_template(self.template.load('llama','crawl'))
             )
         memory = ConversationBufferMemory(memory_key="chat_history")
 

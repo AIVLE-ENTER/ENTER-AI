@@ -15,10 +15,9 @@ class SetTemplate():
     # 메서드 별로 llama: crawl_company, crawl_product
     def __init__(self, 
                  user_id: str, 
-                 llm: str) -> None:
+                 ) -> None:
         
         self.user_id        = user_id
-        self.target_llm     = llm
         self._BASE_SAVE_DIR = Path(__file__).parent.parent.parent / 'user_data' / user_id / 'template'
         self.params         = ParamConfig()
 
@@ -34,11 +33,11 @@ class SetTemplate():
         self._BASE_SAVE_DIR = new_base_dir
     
     
-    def load(self, template_type:str):
+    def load(self, llm:str, template_type:str):
         config = self.params.load(self.base_save_dir/ 'configs.yaml')
         
         # return {'status' : config[self.target_llm]['templates'][template_type]}
-        return config[self.target_llm]['templates'][template_type]
+        return config[llm]['templates'][template_type]
         
         
         
@@ -50,14 +49,14 @@ class SetTemplate():
         self.params.save(config, self.base_save_dir)
         
             
-    def check_llm_attr(self, target_llm):
-        is_dir = [element.stem for element in self._BASE_SAVE_DIR.parent.parent.iterdir()]
-        if target_llm in is_dir:
+    # def check_llm_attr(self, target_llm):
+    #     is_dir = [element.stem for element in self._BASE_SAVE_DIR.parent.parent.iterdir()]
+    #     if target_llm in is_dir:
             
-            return True
-        else:    
+    #         return True
+    #     else:    
             
-            return {"status" : f'does not exist in the list. {is_dir}'}
+    #         return {"status" : f'does not exist in the list. {is_dir}'}
         
         
     def crawl_template(self, **kwargs:Dict) -> str: # 크롤러 분류 시 필요한 템플릿
@@ -121,7 +120,7 @@ class SetTemplate():
 if __name__ =="__main__":
     llm = 'chatgpt'
     # st = SetTemplate('star1234',)
-    st = SetTemplate('star1234', llm)
+    st = SetTemplate('star1234')
     # st.edit('안녕하세요')
     # st.edit(param_config()[f'{llm}_template'])
     # print(st.load_template())

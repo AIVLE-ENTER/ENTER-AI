@@ -37,7 +37,8 @@ class FastApiServer:
         self.router.add_api_route("/llama/{user_id}/{question}", self.llama_answer, methods=["GET"]) # 추후 크롤링 파이프라인에 맞게 재조정(url호출 시 파이프라인 진행)
         self.router.add_api_route("/start_crawl/{user_id}/{keyword}", self.start_crawl, methods=["GET"])
         self.router.add_api_route("/vectordb/{user_id}/{method}/{keyword}", self.manage_vectordb, methods=["GET"])
-        
+        self.router.add_api_route("/new_chat/{user_id}", self.new_chat, methods=["GET"])
+                
         self.router.add_api_route("/template/{task}/{user_id}/{llm}/{template_type}", self.set_my_template, methods=["GET"])
         
         
@@ -89,7 +90,7 @@ class FastApiServer:
                               template_type):
         
         st = SetTemplate(user_id = user_id,
-                         llm     = llm)
+                         )
         
         if task == 'load':
             template = st.load(template_type = template_type)
@@ -160,3 +161,10 @@ class FastApiServer:
         #                                    )
         
         pass
+    
+    async def new_chat(self, user_id):
+        template = SetTemplate(user_id=user_id)
+        template.set_initial_templates()
+        
+        return {'status':'new_chat created!'}
+        
