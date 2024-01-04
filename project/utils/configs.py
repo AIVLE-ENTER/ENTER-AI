@@ -55,7 +55,7 @@ class ParamConfig():
             dst = dst / endpoint
         
         with open(dst, 'w', encoding='utf-8') as file:
-            yaml.dump(data, file, allow_unicode=True)
+            yaml.dump(data, file, sort_keys=False, allow_unicode=True, )
 
         
 if __name__ == '__main__':

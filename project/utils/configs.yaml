@@ -1,7 +1,7 @@
 llama:
   params:
-     top_k : 30
-     max_new_tokens : 500
+     top_k: 1
+     max_new_tokens: 2
      num_return_sequences: 1
     
   templates:
@@ -14,16 +14,30 @@ llama:
 
         prompt: |
 
-        company_info_default: |
+        company_info_default: | 
+                              company info: Our company is called KT, and we primarily provide internet and telecommunications services. 
+                              Our main competitors are SK Telecom and LG U+.
 
         product_info_default: |
+                              product info: "KT Internet, KT GiGA Internet, and KT 10GiGA Internet are wired internet services provided by KT. They hold the top position in the market with a 40.8% market share.
+
+                              As for the product offerings:
+
+                              KT Internet Super Premium offers a maximum speed of 10Gbps in both upload and download, using FTTH optical LAN technology.
+                              KT Internet Premium Plus provides a maximum speed of 5Gbps in both directions, also utilizing FTTH technology.
+                              KT Internet Premium offers speeds of up to 2.5Gbps in both upload and download, using FTTH optical LAN.
+                              KT Internet Essence delivers a maximum bidirectional speed of 1Gbps via optical LAN.
+                              KT Internet Basic offers speeds of up to 500Mbps in both directions, making it one of the fastest gigabit internet options.
+                              KT Internet Slim Plus offers the most budget-friendly plan among gigabit internet options, with speeds limited to 200Mbps in both upload and download.
+                              KT Internet Slim uses FTTH technology to provide a maximum bidirectional speed of 100Mbps."
 
         prompt_default: |
+                        Does the input text seem to be talking about KT company or products?
           
         system_default: |
                         You must distinguish among South Korea's mobile telecommunication companies (skt, kt, lg u+).
-
-                        Provide answers with ONLY 'yes' or 'no'. no more answer
+                        You must answer based on your judgment according to the question.
+                        Only 'yes' or 'no' responses are acceptable. Any other response will not be tolerated.
 
 chatgpt:
   params:
@@ -39,7 +53,7 @@ chatgpt:
       system: |
                           
       prompt_default: |
-                    Given the following conversation and a follow up Input, rephrase the follow up Input to be a standalone Input, in its original language.
+                      Given the following conversation and a follow up Input, rephrase the follow up Input to be a standalone Input, in its original language.
       
       system_default: |
                       Chat History:{chat_history}ß

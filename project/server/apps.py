@@ -112,7 +112,7 @@ class FastApiServer:
                      ): # 임시. 테스트로 두고 크롤링 파이프라인 개발하면 삭제할 예정
         
         lp = LangchainPipline(user_id = user_id)
-        result = lp.chain(question = question)
+        result = lp.chain(question = question).strip()
         
         return result
     
@@ -143,18 +143,18 @@ class FastApiServer:
         
         # 3. 저장한 df불러오기 
         # 3-1 이때, df 컬럼 획일화.         
-        
-        # lp = LangchainPipline()
-        # result = lp.chain(question = df['data'])
-        
         import pandas as pd
-        # 5. df 순차적으로 loop
         data = pd.read_csv('/home/wsl_han/aivle_project/remote/ENTER-AI/project/llm_model/kt.csv')
+        
+        lp = LangchainPipline(user_id = user_id)
+        # result = lp.chain(question = question).strip()
+        
+        # 5. df 순차적으로 loop
         # 6. [loop] 임베딩 및 vectordb에 저장
         VectorPipeline.embedding_and_store(data = data,
                                            user_id = user_id,
-                                           keyword = 'kt_internet',
-                                           target_col='comment',
+                                           keyword = keyword,
+                                           target_col='documnet',
                                            embedding=OpenAIEmbeddings(),
                                            ) 
         # TODO: 벡터디비 만들 때 templates폴더 함께 만들어줘야함

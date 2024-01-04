@@ -2,15 +2,16 @@ import pyrootutils
 pyrootutils.setup_root(search_from = __file__,
                        indicator   = "README.md",
                        pythonpath  = True)
-
 import torch
+from pathlib import Path
 from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
 
 from project.utils.configs import ParamConfig
+from project.server.modules.set_template import SetTemplate
 
 class LlmPipeline():
     
-    def __init__(self, model_path) -> None:
+    def __init__(self, model_path, user_id) -> None:
         
         self.model = AutoModelForCausalLM.from_pretrained(model_path,
                                                           device_map        = "auto",
@@ -18,8 +19,13 @@ class LlmPipeline():
                                                           revision          = "main")
 
         self.tokenizer = AutoTokenizer.from_pretrained(model_path, 
-                                                       use_fast = True)       
-        self.params = ParamConfig()
+                                                       use_fast = True)
+        
+              
+        self.config = ParamConfig().load(Path(__file__).parent.parent / 'user_data' / user_id / 'template' / 'configs.yaml')
+        
+        
+        
     
     def load(self):
         pipe =  pipeline(
@@ -30,7 +36,7 @@ class LlmPipeline():
                     device_map           = "auto",
                     do_sample            = True,
                     eos_token_id         = self.tokenizer.eos_token_id,
-                    **self.params.llama.params
+                    **self.config.llama.params
                     )
         
         return pipe

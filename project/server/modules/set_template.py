@@ -67,20 +67,25 @@ class SetTemplate():
             B_INST, E_INST = "[INST]", "[/INST]"
             B_SYS, E_SYS = "<<SYS>>\n", "\n<</SYS>>\n\n"
             
-            defatul_key_bind = kwargs[llm]['templates']['crawl']
+            # defatul_key_bind = kwargs[llm]['templates']['crawl']
             
             if kwargs.system == '':
                 system = kwargs.system_default
             else:
                 system = kwargs.system
+                
+            if kwargs.prompt == '':
+                prompt = kwargs.prompt_default
+            else:
+                prompt = kwargs.prompt
             
             if (kwargs.company_info == '') and (kwargs.product_info == ''):
                 info_template = f"\n\n{kwargs.company_info_default}\n\n{kwargs.product_info_default}"
             else:
                 info_template = f"\n\n{kwargs.company_info}\n\n{kwargs.product_info}"
                 
-            SYSTEM_PROMPT = B_SYS + system + info_template + E_SYS
-            crawl_template =  B_INST + SYSTEM_PROMPT + "User: {user_input}" + E_INST
+            SYSTEM_PROMPT = B_SYS + info_template + f'\n{system}' + E_SYS
+            crawl_template =  B_INST + SYSTEM_PROMPT + "'User: {user_input}' " + prompt + E_INST
             
             return crawl_template
         
@@ -147,13 +152,13 @@ class SetTemplate():
 if __name__ =="__main__":
     llm = 'chatgpt'
     # st = SetTemplate('star1234',)
-    st = SetTemplate('star1234')
+    st = SetTemplate('asdf1234')
     # st.edit('안녕하세요')
     # st.edit(param_config()[f'{llm}_template'])
     # print(st.load_template())
-    # st.set_initial_templates()
-    a = ParamConfig().load('/home/wsl_han/aivle_project/remote/ENTER-AI/project/user_data/star1234/templates/config.yaml')
-    print(a.chatgpt.templates.conversation.prompt_default)
+    st.set_initial_templates()
+    # a = ParamConfig().load('/home/wsl_han/aivle_project/remote/ENTER-AI/project/user_data/star1234/templates/config.yaml')
+    # print(a.chatgpt.templates.conversation.prompt_default)
     
     
     
