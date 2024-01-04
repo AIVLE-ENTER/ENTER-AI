@@ -37,7 +37,7 @@ class ChainPipeline():
         self.user_id        = user_id
         self.keyword        = keyword
         self.stream_history = None
-        self.config = SetTemplate(user_id)
+        self.config         = SetTemplate(user_id)
     
     def load_history(self):
         if self.history_path.is_file():
@@ -174,7 +174,10 @@ class ChainPipeline():
         conversation = {'n': n, 'conversation':[]}
         
         for i in range(n):
-            conversation['conversation'].append({'history_id': f'{self.user_id}_{self.keyword}_{i}','question':temp[2*i].content,'answer': temp[2*i+1].content})
+            conversation['conversation'].append({'history_id': f'{self.user_id}_{self.keyword}_{i}',
+                                                 'question':temp[2*i].content,
+                                                 'answer': temp[2*i+1].content
+                                                 })
         #j = json.dumps(d,ensure_ascii=False, indent=3)
         return conversation
 

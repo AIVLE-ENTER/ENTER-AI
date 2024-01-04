@@ -30,14 +30,12 @@ class ParamConfig():
     def save(self, 
              src:Union[str, Path, Dict]=None,
              dst:Optional[Union[str, Path]]=None,
-             endpoint = 'configs',
+             endpoint = 'configs.yaml',
              addict   = False):
         
-        endpoint = endpoint + '.yaml'
-        
         if isinstance(src, (str, Path)):
-            data = self.load(src,
-                             addict=addict)
+            data = self.load(path   = src,
+                             addict = addict)
             
             if src != None and dst == None:
                 dst = src

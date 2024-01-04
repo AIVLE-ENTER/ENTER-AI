@@ -60,7 +60,7 @@ class FastApiServer:
                      stream: bool):
         
         chainpipe       = ChainPipeline(user_id = user_id, 
-                                  keyword = keyword)
+                                        keyword = keyword)
         history         = chainpipe.load_history()
         chain           = chainpipe.load_chain()
         response_input  = {'question': item.question}
@@ -98,7 +98,7 @@ class FastApiServer:
                          )
         
         if task == 'load':
-            template = st.load(template_type = template_type)
+            template = st.load(template_type=template_type)
             
             return template
             
@@ -111,8 +111,8 @@ class FastApiServer:
                      question,
                      ): # 임시. 테스트로 두고 크롤링 파이프라인 개발하면 삭제할 예정
         
-        lp = LangchainPipline(user_id = user_id)
-        result = lp.chain(question = question).strip()
+        lp = LangchainPipline(user_id=user_id)
+        result = lp.chain(question=question).strip()
         
         return result
     
@@ -151,20 +151,13 @@ class FastApiServer:
         
         # 5. df 순차적으로 loop
         # 6. [loop] 임베딩 및 vectordb에 저장
-        VectorPipeline.embedding_and_store(data = data,
-                                           user_id = user_id,
-                                           keyword = keyword,
-                                           target_col='documnet',
-                                           embedding=OpenAIEmbeddings(),
+        VectorPipeline.embedding_and_store(data       = data,
+                                           user_id    = user_id,
+                                           keyword    = keyword,
+                                           target_col = 'documnet',
+                                           embedding  = OpenAIEmbeddings(),
                                            ) 
-        # TODO: 벡터디비 만들 때 templates폴더 함께 만들어줘야함
-        # VectorPipeline.embedding_and_store(data = data,
-        #                                    user_id = user_id
-        #                                    keyword = ''
-        #                                    target_col=''
-        #                                    embedding='',
-        #                                    )
-        
+      
         pass
     
     async def new_chat(self, user_id):

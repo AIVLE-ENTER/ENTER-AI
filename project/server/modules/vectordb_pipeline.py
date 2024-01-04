@@ -30,7 +30,7 @@ class VectorPipeline():
             vectorstore_old.save_local(kwd_db_path)
             
         else:
-            vectorstore.save_local(folder_path = kwd_db_path, 
+            vectorstore.save_local(folder_path=kwd_db_path, 
                                    )
             
     @classmethod

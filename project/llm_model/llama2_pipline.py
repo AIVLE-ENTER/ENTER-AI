@@ -19,7 +19,7 @@ class LlmPipeline():
                                                           revision          = "main")
 
         self.tokenizer = AutoTokenizer.from_pretrained(model_path, 
-                                                       use_fast = True)
+                                                       use_fast=True)
         
               
         self.config = ParamConfig().load(Path(__file__).parent.parent / 'user_data' / user_id / 'template' / 'configs.yaml')
