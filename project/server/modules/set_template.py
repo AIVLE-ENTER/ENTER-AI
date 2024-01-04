@@ -45,10 +45,11 @@ class SetTemplate():
         
         
         
-    def edit(self, **kwargs:Dict): # SetTemplate 초기화 시 입력한 llm을 통해 llama 또는 chatgpt template설정 가능. 
-        config = self.params.load(self.base_save_dir / 'config.yaml')
+    def edit(self, llm:str, template_type:str, **kwargs:Dict): # SetTemplate 초기화 시 입력한 llm을 통해 llama 또는 chatgpt template설정 가능. 
+        config = self.params.load(self.base_save_dir / 'configs.yaml')
         for key, item in kwargs.items():
-            config[key] = item
+            
+            config[llm]['templates'][template_type][key] = item
         
         self.params.save(config, self.base_save_dir)
         

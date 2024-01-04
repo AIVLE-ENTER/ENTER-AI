@@ -1,10 +1,10 @@
 import os
+# from typing import dict
 from pathlib import Path
 from fastapi import APIRouter
 from pydantic import BaseModel
 from fastapi.responses import StreamingResponse
 from langchain.embeddings import OpenAIEmbeddings
-from contextlib import contextmanager
 
 from server.modules.set_template import SetTemplate
 from llm_model.llama2_answer import LangchainPipline
@@ -16,7 +16,7 @@ class Quest(BaseModel):
     question: str
 
 class Template(BaseModel):
-    template: str    
+    template_config: dict[str, str]
 
 class UserOut(BaseModel):
     answer: str
@@ -36,15 +36,12 @@ class FastApiServer:
         self.router.add_api_route("/", self.chat_list, methods=["GET"])
         self.router.add_api_route("/history/{user_id}/{keyword}", self.history, methods=["GET"])
         self.router.add_api_route("/answer/{user_id}/{keyword}/{stream}", self.answer, methods=["POST"])
-        self.router.add_api_route("/llama/{user_id}/{question}", self.llama_answer, methods=["GET"]) # 추후 크롤링 파이프라인에 맞게 재조정(url호출 시 파이프라인 진행)
         self.router.add_api_route("/start_crawl/{user_id}/{keyword}", self.start_crawl, methods=["GET"])
         self.router.add_api_route("/vectordb/{user_id}/{method}/{keyword}", self.manage_vectordb, methods=["GET"])
         self.router.add_api_route("/new_chat/{user_id}", self.new_chat, methods=["GET"])
                 
-        self.router.add_api_route("/template/{task}/{user_id}/{llm}/{template_type}", self.set_my_template, methods=["GET"])
+        self.router.add_api_route("/template/{task}/{user_id}/{llm}/{template_type}", self.set_my_template, methods=["POST"])
         
-        
-        # self.router.add_api_route("/faiss/{faiss_method 호출}", self.llama_answer, methods=["GET"])
 
     async def chat_list(self, user_id: str):
         
@@ -56,8 +53,8 @@ class FastApiServer:
     async def answer(self,
                      user_id: str,
                      keyword: str,  
-                     item: Quest,
-                     stream: bool):
+                     stream: bool,
+                     item: Quest):
         
         chainpipe       = ChainPipeline(user_id = user_id, 
                                         keyword = keyword)
@@ -92,18 +89,21 @@ class FastApiServer:
                               task,
                               llm,
                               user_id:str,
-                              template_type):
+                              template_type,
+                              config:Template):
         
-        st = SetTemplate(user_id = user_id,
-                         )
+        st = SetTemplate(user_id=user_id)
         
         if task == 'load':
-            template = st.load(template_type=template_type)
+            template = st.load(llm           = llm, 
+                               template_type = template_type)
             
             return template
             
         if task == 'edit':
-            st.edit() # post로 입력받기
+            st.edit(llm           = llm,
+                    template_type = template_type,
+                    **config.template_config) # post로 입력받기
             
         
     def llama_answer(self, 
@@ -146,7 +146,7 @@ class FastApiServer:
         import pandas as pd
         data = pd.read_csv('/home/wsl_han/aivle_project/remote/ENTER-AI/project/llm_model/kt.csv')
         
-        lp = LangchainPipline(user_id = user_id)
+        lp = LangchainPipline(user_id=user_id)
         # result = lp.chain(question = question).strip()
         
         # 5. df 순차적으로 loop
