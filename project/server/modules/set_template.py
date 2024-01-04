@@ -32,12 +32,16 @@ class SetTemplate():
         
         self._BASE_SAVE_DIR = new_base_dir
     
-    
     def load(self, llm:str, template_type:str):
         config = self.params.load(self.base_save_dir/ 'configs.yaml')
         
         # return {'status' : config[self.target_llm]['templates'][template_type]}
         return config[llm]['templates'][template_type]
+    
+    def load_template(self, llm:str, template_type:str):
+        config = self.load(llm, template_type)
+        
+        return getattr(self,f'{template_type}_template')(config)
         
         
         
@@ -59,18 +63,18 @@ class SetTemplate():
     #         return {"status" : f'does not exist in the list. {is_dir}'}
         
         
-    def crawl_template(self, **kwargs:Dict) -> str: # 크롤러 분류 시 필요한 템플릿
+    def crawl_template(self, kwargs:Dict) -> str: # 크롤러 분류 시 필요한 템플릿
             B_INST, E_INST = "[INST]", "[/INST]"
             B_SYS, E_SYS = "<<SYS>>\n", "\n<</SYS>>\n\n"
             
             defatul_key_bind = kwargs[llm]['templates']['crawl']
             
-            if kwargs.system == {}:
+            if kwargs.system == '':
                 system = kwargs.system_default
             else:
                 system = kwargs.system
             
-            if (kwargs.company_info == {}) and (kwargs.product_info == {}):
+            if (kwargs.company_info == '') and (kwargs.product_info == ''):
                 info_template = f"\n\n{kwargs.company_info_default}\n\n{kwargs.product_info_default}"
             else:
                 info_template = f"\n\n{kwargs.company_info}\n\n{kwargs.product_info}"
@@ -81,9 +85,9 @@ class SetTemplate():
             return crawl_template
         
         
-    def converation_template(self, **kwargs:Dict): ## 다시 보기
+    def answer_template(self, kwargs:Dict): ## 다시 보기
         
-        if (kwargs.prompt == {}) and (kwargs.system == {}):
+        if (kwargs.prompt == '') and (kwargs.system == ''):
             system_prompt = kwargs.prompt_default
             
         else:
@@ -95,12 +99,12 @@ class SetTemplate():
         return converation_template
     
     
-    def report_template(self, **kwargs:Dict):
-        if (kwargs.prompt == {}) and (kwargs.system == {}):
-            report_template = f"{kwargs.system_default}\n\n{kwargs.prompt_default}"
+    def report_template(self, kwargs:Dict):
+        if (kwargs.prompt == '') and (kwargs.system == ''):
+            report_template = f"{kwargs.prompt_default}\n\n{kwargs.prompt_default}{kwargs.system_default}"
             
         else:
-            report_template = f"{kwargs.system}\n\n{kwargs.prompt}"
+            report_template = f"{kwargs.prompt}\n\n{kwargs.system}"
             
         return report_template
                     

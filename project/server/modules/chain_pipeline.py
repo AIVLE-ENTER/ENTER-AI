@@ -21,7 +21,7 @@ from langchain_core.messages import get_buffer_string
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough, RunnableLambda
 
-from project.utils.configs import ParamConfig
+from server.modules.set_template import SetTemplate
 
 # TODO: 리뷰 8개만 참고함. 임베딩 시 또는 훑을 때 어떻게 되는지 봐야함
 
@@ -37,8 +37,8 @@ class ChainPipeline():
         self.user_id        = user_id
         self.keyword        = keyword
         self.stream_history = None
-        # self.params         = param_config().chatgpt.params
-        
+        self.config = SetTemplate(user_id)
+    
     def load_history(self):
         if self.history_path.is_file():
             with open(self.history_path,'rb') as f: #경로예시 : ./data/history/m.txt
@@ -65,9 +65,9 @@ class ChainPipeline():
 
     def load_chain(self):
         #stream_it = AsyncIteratorCallbackHandler()
-        chain_path = self.BASE_DIR / 'templates' / 'chatgpt' 
+        chain_path = self.BASE_DIR / 'template' / 'chatgpt' 
         self.DOCUMENT_PROMPT = open(chain_path / 'chatgpt_prompt_template.txt', 'r', encoding='UTF8').read()
-        self.ANSWER_PROMPT = open(chain_path / 'chatgpt_template.txt', 'r', encoding='UTF8').read()
+        #self.ANSWER_PROMPT = open(chain_path / 'chatgpt_template.txt', 'r', encoding='UTF8').read()
         
         if not self.memory:
             self.memory = self.load_history()
@@ -109,8 +109,8 @@ class ChainPipeline():
         retriever_from_llm = MultiQueryRetriever.from_llm(
             retriever = retriever, 
             llm       = ChatOpenAI(temperature = 0,
-                                   model       = self.params.model),
-        )
+                                   #model       = self.params.model),)
+            ))
         # Now we retrieve the documents
         retrieved_documents = {
             "docs": itemgetter("standalone_question") | retriever_from_llm,
@@ -119,15 +119,28 @@ class ChainPipeline():
 
         #4. 최종 답하는 부분 : answer 부분
         # context를 참조해 한국어로 질문에 답변하는 템플릿
-        template = self.ANSWER_PROMPT
-        ANSWER_PROMPT = ChatPromptTemplate.from_template(template)
+        #보고서
+        print(self.config.load_template('chatgpt','report'))
+        ANSWER_PROMPT = ChatPromptTemplate.from_messages([
+            ("system", self.config.load_template('chatgpt','report')),
+            ("human", "{question}"),
+        ])
+        #print(p.prompt_default+p.system_default)
+        
+        #대화
+        # p = x.load('conversation')
+        # ANSWER_PROMPT = ChatPromptTemplate.from_messages([
+        #     ("system", p.prompt_default+p.system_default),
+        #     ("human", "{question}"),
+        # ])
+        # print(p.prompt_default+p.system_default)
 
         DEFAULT_DOCUMENT_PROMPT = PromptTemplate.from_template(template=self.DOCUMENT_PROMPT)
 
 
         def _combine_documents(docs, document_prompt=DEFAULT_DOCUMENT_PROMPT, document_separator="\n\n"):
             doc_strings = [format_document(doc, document_prompt) for doc in docs]
-            
+            #print(doc_strings)
             return document_separator.join(doc_strings)
 
         # Now we construct the inputs for the final prompt
@@ -167,6 +180,7 @@ class ChainPipeline():
             self.memory = self.load_history()
             
         temp = self.memory.load_memory_variables({})['history']
+        #print(temp)
         N_con = len(temp)//2
         
         if k >= N_con:
@@ -190,4 +204,4 @@ class ChainPipeline():
             yield stream['answer'].content
         self.memory.save_context({"question" : query['question']}, {"answer" : self.stream_history})
         self.save_history()
-        print({"question" : query['question'], "answer" : self.stream_history})
+        #print({"question" : query['question'], "answer" : self.stream_history})

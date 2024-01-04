@@ -17,7 +17,7 @@ class ParamConfig():
             path = self.INIT_CONFIG_PATH
             
         
-        with open(path, 'r', encoding='utf-8') as file:
+        with open(path, 'r',encoding='utf-8') as file:
             data = yaml.safe_load(file)
         
         if addict == True:
