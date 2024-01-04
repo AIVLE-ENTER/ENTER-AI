@@ -5,48 +5,77 @@ llama:
      num_return_sequences: 1
     
   templates:
-    crawl_company_info: |
+      crawl:
+        company_info: |
 
-    crawl_product_info: |    
+        product_info: |
 
-    crawl_company_info_default: |
+        system: |
 
-    crawl_product_info_default: |
+        prompt: |
 
-    crawl_default_prompt: |
-      
-    system_default: |
-                    You must distinguish among South Korea's mobile telecommunication companies (skt, kt, lg u+).
+        company_info_default: |
 
-                    Provide answers with ONLY 'yes' or 'no'. no more answer
+        product_info_default: |
+
+        prompt_default: |
+          
+        system_default: |
+                        You must distinguish among South Korea's mobile telecommunication companies (skt, kt, lg u+).
+
+                        Provide answers with ONLY 'yes' or 'no'. no more answer
 
 chatgpt:
   params:
     model: gpt-3.5-turbo #gpt-4
     
   templates:
-    prompt_template: |
+    conversation:
+      meta_template: |
                      내용 : {page_content}, 날짜 : {날짜}
-                        
-    answer_prompt: |
-                   Given the following conversation and a follow up Input, rephrase the follow up Input to be a standalone Input, in its original language.
+                     
+      prompt: |
+
+      system: |
+                          
+      prompt_default: |
+                    Given the following conversation and a follow up Input, rephrase the follow up Input to be a standalone Input, in its original language.
+      
+      system_default: |
+                      Chat History:{chat_history}ß
+                      Follow Up Input:{question}
+                      Standalone question:
+
+    report:
+      system: |
+
+      prompt: |
+
+      prompt_default: |
+                      Develop a analysis report about our cafe, Structure of report is follwing format
+                      Executive Summary: Provide a concise overview of the report's findings and recommendations.  
+                      Study Introduction: Introduce the company and its background, including its mission, vision, and core values.
+                      Methodology: Explain the research methods, data sources, and analytical tools used.
+                      Review of Statistics: Give a detailed analysis of each component, including market analysis, SWOT analysis, financial analysis, etc.
+                      Conclusion: Give a summary of the main findings and insights derived from the analysis
+                      References: Citations of the sources used in the report, ensuring credibility and transparency
+                      
+                      Here is a list about data our company {context}
+
+      system_default: |
+                      Rephrase the conversation and the follow up query to be a standalone query
+                      and add the elements of swot analysis, 5 forces model, BCG matrix, P.E.S.T.E.L analysis, 3C analysis and Business Model Canvas as the additional information.
+                      conversation: {chat_history}
+                      output must be korean
+      
+      
+
     
-    answer_default: |
-                    Chat History:{chat_history}ß
-                    Follow Up Input:{question}
-                    Standalone question:
+    document:
+      prompt: |
 
-    report_default: |
-                    Here is a list about data our company {context}
-
-    report_default_prompt: |
-                           Develop a analysis report about our cafe, Structure of report is follwing format
-                           Executive Summary: Provide a concise overview of the report's findings and recommendations.  
-                           Study Introduction: Introduce the company and its background, including its mission, vision, and core values.
-                           Methodology: Explain the research methods, data sources, and analytical tools used.
-                           Review of Statistics: Give a detailed analysis of each component, including market analysis, SWOT analysis, financial analysis, etc.
-                           Conclusion: Give a summary of the main findings and insights derived from the analysis
-                           References: Citations of the sources used in the report, ensuring credibility and transparency
+      prompt_default: |
+                      내용 : {page_content}, 날짜 : {날짜}
 
 
 embedding:

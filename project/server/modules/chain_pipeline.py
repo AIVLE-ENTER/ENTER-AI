@@ -66,8 +66,6 @@ class ChainPipeline():
     def load_chain(self):
         #stream_it = AsyncIteratorCallbackHandler()
         chain_path = self.BASE_DIR / 'template' / 'chatgpt' 
-        self.DOCUMENT_PROMPT = open(chain_path / 'chatgpt_prompt_template.txt', 'r', encoding='UTF8').read()
-        #self.ANSWER_PROMPT = open(chain_path / 'chatgpt_template.txt', 'r', encoding='UTF8').read()
         
         if not self.memory:
             self.memory = self.load_history()
@@ -82,13 +80,19 @@ class ChainPipeline():
         #print(len(memory_k.load_memory_variables({})['history']))
         #2. 채팅기록과 현재 입력으로 새로운 입력 생성  : standalone_question 부분
         # chat_history와 현재 question을 이용해 질문 생성하는 템플릿
-        _template = """Given the following conversation and a follow up Input, rephrase the follow up Input to be a standalone Input, in its original language.
+        # _template = """Given the following conversation and a follow up Input, rephrase the follow up Input to be a standalone Input, in its original language.
 
-        Chat History: {chat_history}
-        Follow Up Input: {question}
+        # Chat History: {chat_history}
+        # Follow Up Input: {question}
         
-        Standalone question:"""
-        CONDENSE_QUESTION_PROMPT = PromptTemplate.from_template(_template)
+        # Standalone question:"""
+        print('standalone_template :',self.config.load('chatgpt','report').system_default)
+        CONDENSE_QUESTION_PROMPT = ChatPromptTemplate.from_messages([
+            ("system",self.config.load('chatgpt','report').system_default),
+            ("human", "{question}"),
+        ])
+        
+        # PromptTemplate.from_template(_template)
 
         # Now we calculate the standalone question
         standalone_question = {
@@ -120,7 +124,7 @@ class ChainPipeline():
         #4. 최종 답하는 부분 : answer 부분
         # context를 참조해 한국어로 질문에 답변하는 템플릿
         #보고서
-        print(self.config.load_template('chatgpt','report'))
+        print('report template :', self.config.load_template('chatgpt','report'))
         ANSWER_PROMPT = ChatPromptTemplate.from_messages([
             ("system", self.config.load_template('chatgpt','report')),
             ("human", "{question}"),
@@ -135,12 +139,12 @@ class ChainPipeline():
         # ])
         # print(p.prompt_default+p.system_default)
 
-        DEFAULT_DOCUMENT_PROMPT = PromptTemplate.from_template(template=self.DOCUMENT_PROMPT)
+        DEFAULT_DOCUMENT_PROMPT = PromptTemplate.from_template(template=self.config.load_template('chatgpt','document'))
 
 
         def _combine_documents(docs, document_prompt=DEFAULT_DOCUMENT_PROMPT, document_separator="\n\n"):
             doc_strings = [format_document(doc, document_prompt) for doc in docs]
-            #print(doc_strings)
+            print(doc_strings)
             return document_separator.join(doc_strings)
 
         # Now we construct the inputs for the final prompt

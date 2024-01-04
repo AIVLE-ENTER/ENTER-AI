@@ -85,7 +85,7 @@ class SetTemplate():
             return crawl_template
         
         
-    def answer_template(self, kwargs:Dict): ## 다시 보기
+    def conversation_template(self, kwargs:Dict): ## 다시 보기
         
         if (kwargs.prompt == '') and (kwargs.system == ''):
             system_prompt = kwargs.prompt_default
@@ -100,13 +100,36 @@ class SetTemplate():
     
     
     def report_template(self, kwargs:Dict):
-        if (kwargs.prompt == '') and (kwargs.system == ''):
-            report_template = f"{kwargs.prompt_default}\n\n{kwargs.prompt_default}{kwargs.system_default}"
+        if (kwargs.prompt == ''):
+            report_template = f"{kwargs.prompt_default}"
             
         else:
-            report_template = f"{kwargs.prompt}\n\n{kwargs.system}"
+            report_template = f"{kwargs.prompt}"
             
         return report_template
+    
+    def standalone_template(self, kwargs:Dict):
+        if (kwargs.system == ''):
+            standalone_template = f"{kwargs.system_default}"
+            
+        else:
+            standalone_template = f"{kwargs.system}"
+            
+        return standalone_template
+    
+    
+    def document_template(self, kwargs:Dict): ## 다시 보기
+        
+        if (kwargs.prompt == ''):
+            system_prompt = kwargs.prompt_default
+            
+        else:
+            system_prompt = kwargs.prompt
+        
+        document_template =  system_prompt
+        
+        
+        return document_template
                     
     
     def set_initial_templates(self,):
