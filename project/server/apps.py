@@ -14,7 +14,9 @@ from server.modules.vectordb_pipeline import VectorPipeline
 
 class Quest(BaseModel):
     question: str
-    
+
+class Template(BaseModel):
+    template: str    
 
 class UserOut(BaseModel):
     answer: str
@@ -72,6 +74,9 @@ class FastApiServer:
             chainpipe.memory = history
             chainpipe.save_history()
             return result
+    
+    async def report(self, data: Template):
+        pass
     
     async def history(self, 
                       user_id, 
