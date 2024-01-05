@@ -83,10 +83,11 @@ class FastApiServer:
     async def report(self, data: Report):
         chainpipe = ReportChainPipeline(data.user_id, data.keyword, data.report_template, data.document_template)
         result = chainpipe.load_chain()
+        
         return result
     
     async def history(self, 
-                      user_id, 
+                      user_id:str, 
                       keyword:str):
         
         chainpipe = ChainPipeline(user_id = user_id,
@@ -96,28 +97,29 @@ class FastApiServer:
         return history_conversation
     
     async def load_template(self,
-                            llm,
+                            llm:str,
                             user_id:str,
-                            template_type,):
+                            template_type:str,):
         
         st = SetTemplate(user_id=user_id)
         template = st.load(llm           = llm, 
-                               template_type = template_type)
+                           template_type = template_type)
         
         return template
         
     
-    async def edit_template(self, # llm에 따라 저장하는 템플릿 방식 나눔. (llama, chatgpt)
-                            llm,
+    async def edit_template(self,
+                            llm:str,
                             user_id:str,
-                            template_type,
+                            template_type:str,
                             config:Template):
         
         st = SetTemplate(user_id=user_id)
         
         st.edit(llm           = llm,
                 template_type = template_type,
-                **config.template_config) # post로 입력받기        
+                **config.template_config)
+        \
                 
         
     def llama_answer(self, 
@@ -156,7 +158,7 @@ class FastApiServer:
         # 2. scarpy에서 수집된 데이터 df로 저장 하는 로직(각 데이터프레임은 keyword+사이트명+날짜로 관리)
         
         # 3. 저장한 df불러오기 
-        # 3-1 이때, df 컬럼 획일화.         
+        # 3-1 이때, df 컬럼 획일화.
         import pandas as pd
         data = pd.read_csv('/home/wsl_han/aivle_project/remote/ENTER-AI/project/llm_model/kt.csv')
         
@@ -170,9 +172,8 @@ class FastApiServer:
                                            keyword    = keyword,
                                            target_col = 'documnet',
                                            embedding  = OpenAIEmbeddings(),
-                                           ) 
+                                           )
       
-        pass
     
     async def new_chat(self, user_id):
         template = SetTemplate(user_id=user_id)

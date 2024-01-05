@@ -1,22 +1,25 @@
-import scrapy
-from scrapy_splash import SplashRequest
-from scrapy.http import Request, TextResponse
-from scrapy.utils.request import fingerprint
+import rootutils
+root = rootutils.setup_root(__file__, dotenv=True, pythonpath=True, cwd=False)
+
+import pyrootutils
+project_root = pyrootutils.setup_root(search_from = __file__,
+                                      indicator   = "README.md",
+                                      pythonpath  = True)
+
+import re
 import numpy as np
 import pandas as pd
-import requests
-import re
-import rootutils
-root = rootutils.setup_root(
-    __file__, dotenv=True, pythonpath=True, cwd=False)
-
-from typing import Iterable
-from datetime import datetime
 from pathlib import Path
-from urllib.parse import urljoin, urlparse
-from utils import Xpath, CrawlerSettings
+from datetime import datetime
+
+import scrapy
+import requests
 from bs4 import BeautifulSoup
 from w3lib.html import remove_tags
+from scrapy_splash import SplashRequest
+from utils import Xpath, CrawlerSettings
+
+
 
 # 스파이더의 작업 디렉토리를 설정
 dir_spiders = Path(__file__).parent.absolute()
@@ -41,31 +44,34 @@ def page_cnt(keyword):
 
 # 스파이더 클래스를 정의
 class QuesarzoneSpider(scrapy.Spider):
-    name = "quesarzone"
+    name = "QuesarzoneSpider"
     custom_settings = CrawlerSettings.get("SPLASH_LOCAL")
 
 
     # 초기화 함수를 정의합니다.
-    def __init__(self,keyword):
-        super().__init__()
-        self.site = 'quesarzone'
-        self.keyword = keyword
-        self.url = [f"https://quasarzone.com/groupSearches?keyword={self.keyword}"]
-        self.num_page = page_cnt(keyword)
-        self.data = pd.DataFrame(columns=[
-            'url',
-            'site',
-            'document',
-            'documenttype',
-            'postdate',
-            'likes',
-            'dislike',
-            'comment_cnt',
-            'views',
-            'boardcategory',
-            'documentcategory'
-        ])
+    def __init__(self, user_id:str, keyword:str):
 
+        super().__init__()
+        self.site     = '퀘이사존'
+        self.keyword  = keyword
+        self.start_urls      = [f"https://quasarzone.com/groupSearches?keyword={self.keyword}"]
+        self.num_page = page_cnt(keyword)
+        self.data     = pd.DataFrame(columns=[
+                                             'url',
+                                             'site',
+                                             'document',
+                                             'documenttype',
+                                             'postdate',
+                                             'likes',
+                                             'dislike',
+                                             'comment_cnt',
+                                             'views',
+                                             'boardcategory',
+                                             'documentcategory'
+                                             ])
+        self.base_dir = project_root / 'project' / 'user_data' / user_id / 'crawl_data' / keyword /datetime.today().strftime('%Y-%m-%dT%H:%M:%S')
+
+ 
 
     # Splash Lua 스크립트를 읽어옴
     lua_source = (
@@ -148,21 +154,23 @@ class QuesarzoneSpider(scrapy.Spider):
         views = response.xpath('//em[@class="view"]//text()').get()
         # print(views)
 
-        Quesarzone_data = {'url':                       self.url,
-                           'site':                      self.site,
-                           'document':                  document,
-                           'documenttype':              np.NAN,
-                           'postdate':                  date,
-                            'likes' :                   np.NAN,
-                            'dislike' :                 np.NAN,
-                           'comment_cnt' :              comment_cnt,
-                            'views':                    views,
-                            'boardcategory' :           np.NAN,
-                            'documentcategory' :        np.NAN}
+        Quesarzone_data = dict(url              = self.start_urls[0],
+                               site             = self.site,
+                               document         = document, 
+                               documenttype     = np.NaN, # documenttype 정의해야함 -> 크롤링으로 가져오는게 아니라 fix
+                               postdate         = date,
+                               likes            = np.NaN,
+                               dislike          = np.NaN,
+                               comment_cnt      = comment_cnt,
+                               views            = views,
+                               boardcategory    = np.NaN,
+                               documentcategory = np.NaN
+                               )
+         
         yield Quesarzone_data
+        
         # df = pd.DataFrame([Quesarzone_data])
-        # df.to_csv('Quesarzone_data.csv', index=False, mode='a', header=not Path('Quesarzone_data.csv').exists())
-
+        # df.to_csv(self.base_dir / f"{self.site}_crawl_data.csv", index=False, mode='a', header=not Path('Quesarzone_data.csv').exists())
 
 
 if __name__ == '__main__':

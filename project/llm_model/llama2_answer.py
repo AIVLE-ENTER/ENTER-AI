@@ -51,11 +51,11 @@ class LangchainPipline():
         
 if __name__ == "__main__":
     model_path = "TheBloke/Llama-2-13B-Chat-GPTQ"
+    # model_path = "42MARU/GenAI-llama2-ko-en-dpo-13b-test3"
     
     model_name = model_path.split('/')[-1]
     
-    question = "kt 인터넷 속도도 빠르고 서비스도 괜찮은듯 내가 원래 lg 인터넷 썼는데 맨날 끊겼음 \
-                근데 kt로 바꾸니까 끊기는게 덜하고 특히 해외서버에 있는 게임 할 때 끊기는게 잘 없음"
+    question = """I use Skt Internet, but it's always disconnected and not good for playing games. Which of the three telecommunications companies do you like???"""
     # question = "hi"
     
   

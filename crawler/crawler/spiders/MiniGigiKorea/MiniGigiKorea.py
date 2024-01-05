@@ -1,37 +1,37 @@
+import rootutils
+root = rootutils.setup_root(__file__, dotenv=True, pythonpath=True, cwd=False)
+
+import pyrootutils
+project_root = pyrootutils.setup_root(search_from = __file__,
+                                      indicator   = "README.md",
+                                      pythonpath  = True)
+import re
 import scrapy
-from scrapy_splash import SplashRequest
-from scrapy.http import Request, TextResponse
-from scrapy.utils.request import fingerprint
 import numpy as np
 import pandas as pd
-import requests
-import re
-import rootutils
-root = rootutils.setup_root(
-    __file__, dotenv=True, pythonpath=True, cwd=False)
-
-from typing import Iterable
-from datetime import datetime
 from pathlib import Path
-from urllib.parse import urljoin, urlparse
-from utils import Xpath, CrawlerSettings
-from bs4 import BeautifulSoup
+from datetime import datetime
+
 from w3lib.html import remove_tags
+from scrapy_splash import SplashRequest
+from utils import Xpath, CrawlerSettings
+
 
 # 스파이더의 작업 디렉토리를 설정
 dir_spiders = Path(__file__).parent.absolute()
 
 class MiniGigiKoreaSpider(scrapy.Spider):
-    name = "MiniGigiKorea"
+    name = "MiniGigiKoreaSpider"
     custom_settings = CrawlerSettings.get("SPLASH_LOCAL")
 
     # 초기화 함수를 정의합니다.
-    def __init__(self,keyword):
+    def __init__(self, user_id:str, keyword:str):
         super().__init__()
-
-        self.site = 'MiniGigiKorea'
-        self.keyword = keyword
+        self.site       = '미니기기코리아'
+        self.keyword    = keyword
         self.start_urls = [f"https://meeco.kr/?_filter=search&act=&vid=&mid=ITplus&category=&search_target=title_content&search_keyword={self.keyword}"]
+        self.base_dir = project_root / 'project' / 'user_data' / user_id / 'crawl_data' / keyword /datetime.today().strftime('%Y-%m-%dT%H:%M:%S')
+        
 
     # Splash Lua 스크립트를 읽어옴
     lua_source = (
@@ -118,7 +118,7 @@ class MiniGigiKoreaSpider(scrapy.Spider):
 
         # 게시 날짜
         date = response.xpath('//*[@id="bBd"]/article/header/ul[1]/li[3]').get()
-        postdate = remove_tags(date)
+        date = remove_tags(date)
         # print(postdate)
 
         # 좋아요
@@ -144,20 +144,30 @@ class MiniGigiKoreaSpider(scrapy.Spider):
         # print(documentcategory)
 
 
-        MiniGigiKorea_data = {  'url':                       self.start_urls,
-                                'site':                      self.site,
-                                'document':                  document,
-                                'documenttype':              np.NAN,
-                                'postdate':                  date,
-                                'likes' :                    likes,
-                                'dislike' :                  np.NAN,
-                                'comment_cnt' :              comment_cnt,
-                                'views':                     views,
-                                'boardcategory' :            boardcategory,
-                                'documentcategory' :         documentcategory}
-        # yield MiniGigiKorea_data
-        df = pd.DataFrame([MiniGigiKorea_data])
-        df.to_csv('MiniGigiKorea_data.csv', index=False, mode='a', header=not Path('MiniGigiKorea_data.csv').exists())
+        MiniGigiKorea_data = dict(url             = self.start_urls,
+                                 site             = self.site,
+                                 document         = document,
+                                 documenttype     = np.NaN, # documenttype 정의해야함
+                                 postdate         = date,
+                                 likes            = likes,
+                                 dislike          = np.NaN,
+                                 comment_cnt      = comment_cnt,
+                                 views            = views,
+                                 boardcategory    = boardcategory,
+                                 documentcategory = documentcategory
+                                 )
+        
+        
+        
+        yield MiniGigiKorea_data
+        
+        # df = pd.DataFrame([MiniGigiKorea_data])
+        # if (self.base_dir / f"{self.site}_crawl_data.csv").is_dir() == True:
+        #     mode = 'a'
+        # else:
+        #     mode = 'w'
+            
+        # df.to_csv(self.base_dir / f"{self.site}_crawl_data.csv", index=False, mode=mode, header=not Path('MiniGigiKorea_data.csv').exists())
 
 if __name__ == '__main__':
     from scrapy.crawler import CrawlerProcess

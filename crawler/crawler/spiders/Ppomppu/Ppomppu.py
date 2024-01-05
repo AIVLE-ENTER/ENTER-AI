@@ -1,49 +1,49 @@
-import scrapy
-from scrapy_splash import SplashRequest
-from scrapy.http import Request, Response, TextResponse
-from scrapy.utils.request import fingerprint
-import numpy as np
-import pandas as pd
-import requests
-import re
 import rootutils
-from bs4 import BeautifulSoup
-from w3lib.html import remove_tags
-from typing import Any, Iterable
-from datetime import datetime
+root = rootutils.setup_root(__file__, dotenv=True, pythonpath=True, cwd=False)
+
+import pyrootutils
+project_root = pyrootutils.setup_root(search_from = __file__,
+                                      indicator   = "README.md",
+                                      pythonpath  = True)
+
+import re
+import scrapy
+import pandas as pd
 from pathlib import Path
-from urllib.parse import urljoin, urlparse
-import json
-# from utils.xpath import Xpath
-# from utils.settings import CrawlerSettings
+from scrapy_splash import SplashRequest
+from datetime import datetime
 
 # 스파이더의 작업 디렉토리를 설정
 dir_spiders = Path(__file__).parent.absolute()
 
 class PpomppuSpider(scrapy.Spider):
-    name = 'Ppomppu'
+    name = 'PpomppuSpider'
     user_agent = 'Mozilla/5.0'
 
-    def __init__(self, keyword):
+    def __init__(self, user_id, keyword:str):
+
         super().__init__()
-        self.site = 'Ppomppu'
-        self.keyword = keyword
-        self.start_urls = [f"https://www.ppomppu.co.kr/search_bbs.php?bbs_cate=2&keyword={self.keyword}"]
-        self.url = 'https://www.ppomppu.co.kr'
-        self.data = pd.DataFrame(columns=[
-            'url',
-            'site',
-            'document',
-            'documenttype',
-            'postdate',
-            'likes',
-            'dislike',
-            'comment_cnt',
-            'views',
-            'boardcategory',
-            'documentcategory'
-        ])
+        self.site        = '뽐뿌'
+        self.keyword     = keyword
+        self.start_urls  = [f"https://www.ppomppu.co.kr/search_bbs.php?bbs_cate=2&keyword={self.keyword}"]
+        self.url         = 'https://www.ppomppu.co.kr'
         self.url_counter = 0
+        self.data        = pd.DataFrame(columns=[
+                                                'url',
+                                                'site',
+                                                'document',
+                                                'documenttype',
+                                                'postdate',
+                                                'likes',
+                                                'dislike',
+                                                'comment_cnt',
+                                                'views',
+                                                'boardcategory',
+                                                'documentcategory'
+                                                ])
+        
+        self.base_dir = project_root / 'project' / 'user_data' / user_id / 'crawl_data' / keyword /datetime.today().strftime('%Y-%m-%dT%H:%M:%S')
+        
 
     # Splash Lua 스크립트를 읽어옴
     lua_source = (
@@ -125,7 +125,8 @@ class PpomppuSpider(scrapy.Spider):
         #                     'views':                   views,
         #                     'boardcategory' :          ,
         #                     'documentcategory' :       }
-
+        
+        # tempCodeRunnerFile -> //td[@class="han"]/div[@class="sub-top-contents-box"]//div[@class="sub-top-text-box"]/font[@class="view_cate"]/text()
 if __name__ == '__main__':
     from scrapy.crawler import CrawlerProcess
     process = CrawlerProcess()
