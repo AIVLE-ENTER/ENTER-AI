@@ -40,7 +40,8 @@ class FastApiServer:
         self.router.add_api_route("/vectordb/{user_id}/{method}/{keyword}", self.manage_vectordb, methods=["GET"])
         self.router.add_api_route("/new_chat/{user_id}", self.new_chat, methods=["GET"])
                 
-        self.router.add_api_route("/template/{task}/{user_id}/{llm}/{template_type}", self.set_my_template, methods=["POST"])
+        self.router.add_api_route("/load_template/{user_id}/{llm}/{template_type}", self.load_template, methods=["GET"])
+        self.router.add_api_route("/edit_template/{user_id}/{llm}/{template_type}", self.edit_template, methods=["POST"])
         
 
     async def chat_list(self, user_id: str):
@@ -85,26 +86,30 @@ class FastApiServer:
         
         return history_conversation
     
-    async def set_my_template(self, # llm에 따라 저장하는 템플릿 방식 나눔. (llama, chatgpt)
-                              task,
-                              llm,
-                              user_id:str,
-                              template_type,
-                              config:Template):
+    async def load_template(self,
+                            llm,
+                            user_id:str,
+                            template_type,):
+        
+        st = SetTemplate(user_id=user_id)
+        template = st.load(llm           = llm, 
+                               template_type = template_type)
+        
+        return template
+        
+    
+    async def edit_template(self, # llm에 따라 저장하는 템플릿 방식 나눔. (llama, chatgpt)
+                            llm,
+                            user_id:str,
+                            template_type,
+                            config:Template):
         
         st = SetTemplate(user_id=user_id)
         
-        if task == 'load':
-            template = st.load(llm           = llm, 
-                               template_type = template_type)
-            
-            return template
-            
-        if task == 'edit':
-            st.edit(llm           = llm,
-                    template_type = template_type,
-                    **config.template_config) # post로 입력받기
-            
+        st.edit(llm           = llm,
+                template_type = template_type,
+                **config.template_config) # post로 입력받기        
+                
         
     def llama_answer(self, 
                      user_id,
