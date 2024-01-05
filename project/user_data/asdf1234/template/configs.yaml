@@ -57,49 +57,33 @@ chatgpt:
     model: gpt-3.5-turbo
   templates:
     conversation:
-      meta_template: '내용 : {page_content}, 날짜 : {날짜}
+      document: ''
+      document_default: '내용 : {page_content}, 날짜 : {날짜}
 
         '
-      prompt: ''
+      condense: ''
+      condense_default: 'Rephrase the conversation and the follow up query to be a standalone query, in its original language.
+
+        '
       system: ''
-      prompt_default: 'Given the following conversation and a follow up Input, rephrase
-        the follow up Input to be a standalone Input, in its original language.
-
-        '
-      system_default: 'Chat History:{chat_history}ß
-
-        Follow Up Input:{question}
-
-        Standalone question:
+      system_default: 'You are an expert of industry analysis. answer about the input by referring the following context : {context}
 
         '
     report:
-      system: ''
       prompt: ''
-      prompt_default: "Develop a analysis report about our cafe, Structure of report\
+      prompt_default: "Develop a analysis report in korean about the company, product or service, Structure of report\
         \ is follwing format\nExecutive Summary: Provide a concise overview of the\
         \ report's findings and recommendations.  \nStudy Introduction: Introduce\
         \ the company and its background, including its mission, vision, and core\
         \ values.\nMethodology: Explain the research methods, data sources, and analytical\
         \ tools used.\nReview of Statistics: Give a detailed analysis of each component,\
-        \ including market analysis, SWOT analysis, financial analysis, etc.\nConclusion:\
+        \ including market analysis, SWOT analysis, 5 forces model, BCG matrix,\
+        \ P.E.S.T.E.L analysis, 3C analysis and Business Model Canvas, etc.\nConclusion:\
         \ Give a summary of the main findings and insights derived from the analysis\n\
-        References: Citations of the sources used in the report, ensuring credibility\
-        \ and transparency\n\nHere is a list about data our company {context}\n"
-      system_default: 'Rephrase the conversation and the follow up query to be a standalone
-        query
-
-        and add the elements of swot analysis, 5 forces model, BCG matrix, P.E.S.T.E.L
-        analysis, 3C analysis and Business Model Canvas as the additional information.
-
-        conversation: {chat_history}
-
-        output must be korean
-
-        '
-    document:
-      prompt: ''
-      prompt_default: '내용 : {page_content}, 날짜 : {날짜}
+        \ References: Citations of the sources used in the report, ensuring credibility\
+        \ and transparency\n\nHere is opinions about the company, product or service {context}\n"
+      document: ''
+      document_default: '내용 : {page_content}, 날짜 : {날짜}
 
         '
 embedding:

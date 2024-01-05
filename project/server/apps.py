@@ -8,12 +8,18 @@ from langchain.embeddings import OpenAIEmbeddings
 
 from server.modules.set_template import SetTemplate
 from llm_model.llama2_answer import LangchainPipline
-from server.modules.chain_pipeline import ChainPipeline
+from server.modules.chain_pipeline import ChainPipeline,ReportChainPipeline
 from server.modules.vectordb_pipeline import VectorPipeline
 
 
 class Quest(BaseModel):
     question: str
+
+class Report(BaseModel): #report에 적용
+    user_id: str
+    keyword: str
+    report_template: str
+    document_template: str
 
 class Template(BaseModel):
     template_config: dict[str, str]
@@ -39,6 +45,7 @@ class FastApiServer:
         self.router.add_api_route("/start_crawl/{user_id}/{keyword}", self.start_crawl, methods=["GET"])
         self.router.add_api_route("/vectordb/{user_id}/{method}/{keyword}", self.manage_vectordb, methods=["GET"])
         self.router.add_api_route("/new_chat/{user_id}", self.new_chat, methods=["GET"])
+        self.router.add_api_route("/report", self.report, methods=["POST"])
                 
         self.router.add_api_route("/load_template/{user_id}/{llm}/{template_type}", self.load_template, methods=["GET"])
         self.router.add_api_route("/edit_template/{user_id}/{llm}/{template_type}", self.edit_template, methods=["POST"])
@@ -73,8 +80,10 @@ class FastApiServer:
             chainpipe.save_history()
             return result
     
-    async def report(self, data: Template):
-        pass
+    async def report(self, data: Report):
+        chainpipe = ReportChainPipeline(data.user_id, data.keyword, data.report_template, data.document_template)
+        result = chainpipe.load_chain()
+        return result
     
     async def history(self, 
                       user_id, 

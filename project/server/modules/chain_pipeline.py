@@ -37,7 +37,7 @@ class ChainPipeline():
         self.user_id        = user_id
         self.keyword        = keyword
         self.stream_history = None
-        self.config         = SetTemplate(user_id)
+        self.config         = SetTemplate(user_id).load('chatgpt','conversation')
     
     def load_history(self):
         if self.history_path.is_file():
@@ -64,7 +64,6 @@ class ChainPipeline():
 
 
     def load_chain(self):
-        #stream_it = AsyncIteratorCallbackHandler()
         chain_path = self.BASE_DIR / 'template' / 'chatgpt' 
         
         if not self.memory:
@@ -78,21 +77,18 @@ class ChainPipeline():
         )
         #print(memory_k.load_memory_variables({}))
         #print(len(memory_k.load_memory_variables({})['history']))
-        #2. 채팅기록과 현재 입력으로 새로운 입력 생성  : standalone_question 부분
-        # chat_history와 현재 question을 이용해 질문 생성하는 템플릿
-        # _template = """Given the following conversation and a follow up Input, rephrase the follow up Input to be a standalone Input, in its original language.
-
-        # Chat History: {chat_history}
-        # Follow Up Input: {question}
         
-        # Standalone question:"""
-        print('standalone_template :',self.config.load('chatgpt','report').system_default)
+        if self.config.condense == '':
+            condense_prompt = self.config.condense_default
+        else:
+            condense_prompt = self.config.condense
+            
+        print(condense_prompt)    
+
         CONDENSE_QUESTION_PROMPT = ChatPromptTemplate.from_messages([
-            ("system",self.config.load('chatgpt','report').system_default),
+            ("system", condense_prompt + ' conversation : {chat_history}'),
             ("human", "{question}"),
         ])
-        
-        # PromptTemplate.from_template(_template)
 
         # Now we calculate the standalone question
         standalone_question = {
@@ -123,24 +119,26 @@ class ChainPipeline():
 
         #4. 최종 답하는 부분 : answer 부분
         # context를 참조해 한국어로 질문에 답변하는 템플릿
-        #보고서
-        print('report template :', self.config.load_template('chatgpt','report'))
+        
+        if self.config.system == '':
+            answer_prompt = self.config.system_default
+        else:
+            answer_prompt = self.config.system
+        
+        print(answer_prompt)
+        
         ANSWER_PROMPT = ChatPromptTemplate.from_messages([
-            ("system", self.config.load_template('chatgpt','report')),
+            ("system", answer_prompt),
             ("human", "{question}"),
         ])
-        #print(p.prompt_default+p.system_default)
         
-        #대화
-        # p = x.load('conversation')
-        # ANSWER_PROMPT = ChatPromptTemplate.from_messages([
-        #     ("system", p.prompt_default+p.system_default),
-        #     ("human", "{question}"),
-        # ])
-        # print(p.prompt_default+p.system_default)
+        if self.config.document == '':
+            document_prompt = self.config.document_default
+        else:
+            document_prompt = self.config.document
 
-        DEFAULT_DOCUMENT_PROMPT = PromptTemplate.from_template(template=self.config.load_template('chatgpt','document'))
-
+        DEFAULT_DOCUMENT_PROMPT = PromptTemplate.from_template(template=document_prompt)
+        print(DEFAULT_DOCUMENT_PROMPT)
 
         def _combine_documents(docs, document_prompt=DEFAULT_DOCUMENT_PROMPT, document_separator="\n\n"):
             doc_strings = [format_document(doc, document_prompt) for doc in docs]
@@ -154,7 +152,7 @@ class ChainPipeline():
         }
         # And finally, we do the part that returns the answers
         answer = {
-            "answer": final_inputs | ANSWER_PROMPT | ChatOpenAI(),#streaming=True,callbacks=[stream_it]),    #streaming?
+            "answer": final_inputs | ANSWER_PROMPT | ChatOpenAI(),
             #"docs": itemgetter("docs"),
         }
         
@@ -178,7 +176,6 @@ class ChainPipeline():
                                                  'question':temp[2*i].content,
                                                  'answer': temp[2*i+1].content
                                                  })
-        #j = json.dumps(d,ensure_ascii=False, indent=3)
         return conversation
 
 
@@ -212,3 +209,59 @@ class ChainPipeline():
         self.memory.save_context({"question" : query['question']}, {"answer" : self.stream_history})
         self.save_history()
         #print({"question" : query['question'], "answer" : self.stream_history})
+    
+class ReportChainPipeline():
+        
+    def __init__(self, 
+                user_id:str, 
+                keyword:str,
+                report_template:str,
+                document_template:str):
+        self.BASE_DIR       = Path(__file__).parent.parent.parent / 'user_data' / user_id 
+        self.database_path  = self.BASE_DIR / 'database' / keyword
+        self.user_id        = user_id
+        self.keyword        = keyword
+        self.config         = SetTemplate(user_id)
+        self.report_template = report_template
+        self.document_template = document_template
+    
+    def load_chain(self):
+        
+        vectorstore = FAISS.load_local(folder_path = self.database_path, 
+                                    embeddings  = OpenAIEmbeddings())
+        retriever = vectorstore.as_retriever()#(search_kwargs={"k": 50})
+
+        retriever_from_llm = MultiQueryRetriever.from_llm(
+            retriever = retriever, 
+            llm       = ChatOpenAI(temperature = 0,
+                                #model       = self.params.model),)
+            ))
+        # Now we retrieve the documents
+        retrieved_documents = retriever_from_llm.get_relevant_documents(query=self.report_template)
+
+        # DEFAULT_DOCUMENT_PROMPT = PromptTemplate.from_template(template=self.config.load_template('chatgpt','document'))
+        DEFAULT_DOCUMENT_PROMPT = PromptTemplate.from_template(template=self.document_template)
+
+        def _combine_documents(docs, document_prompt=DEFAULT_DOCUMENT_PROMPT, document_separator="\n\n"):
+            doc_strings = [format_document(doc, document_prompt) for doc in docs]
+            return document_separator.join(doc_strings)
+        
+        ANSWER_PROMPT = self.report_template.format(context = _combine_documents(retrieved_documents))
+        #print(ANSWER_PROMPT)
+        self.save_template()
+        return ChatOpenAI().predict(ANSWER_PROMPT)
+    
+    def save_template(self):
+        #if self.config.load_template('chatgpt','report')[:-1] == self.report_template:
+        config = self.config.params.load(self.BASE_DIR / 'template' / 'configs.yaml' ,addict=False)
+        #print(config['chatgpt']['templates']['report']['prompt'])
+        #print(config['chatgpt']['templates']['report']['document'])
+        # print(config['chatgpt']['templates']['report'])
+        config['chatgpt']['templates']['report']['prompt'] = self.report_template
+        #if self.config.load_template('chatgpt','document')[:-1] == self.document_template:
+        config['chatgpt']['templates']['report']['document'] = self.document_template
+        # print(config)
+        # print(self.config.base_save_dir / 'configs.yaml')
+        self.config.params._save(config, self.config.base_save_dir , 'configs.yaml')
+        # print(self.config.load_template('chatgpt','document')[:-1],len(self.config.load_template('chatgpt','document')))
+        # print(self.document_template,len(self.document_template))
