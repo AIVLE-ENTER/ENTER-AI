@@ -1,0 +1,1 @@
+//td[@class="han"]/div[@class="sub-top-contents-box"]//div[@class="sub-top-text-box"]/font[@class="view_cate"]/text()

@@ -742,3 +742,11 @@ Either way, the resulting fingerprints will be returned as bytes, not as a strin
  'splash/execute/response_count/200': 13,
  'start_time': datetime.datetime(2024, 1, 2, 1, 56, 46, 473208, tzinfo=datetime.timezone.utc)}
 2024-01-02 10:57:15 [scrapy.core.engine] INFO: Spider closed (finished)
+2024-01-02 11:39:34 [scrapy.utils.log] INFO: Scrapy 2.11.0 started (bot: crawler)
+2024-01-02 11:39:34 [scrapy.utils.log] INFO: Versions: lxml 4.9.4.0, libxml2 2.10.3, cssselect 1.2.0, parsel 1.8.1, w3lib 2.1.2, Twisted 22.10.0, Python 3.11.5 (main, Sep 11 2023, 08:31:25) [Clang 14.0.6 ], pyOpenSSL 23.3.0 (OpenSSL 3.1.4 24 Oct 2023), cryptography 41.0.7, Platform macOS-13.6.1-arm64-arm-64bit
+2024-01-02 11:39:46 [scrapy.utils.log] INFO: Scrapy 2.11.0 started (bot: crawler)
+2024-01-02 11:39:46 [scrapy.utils.log] INFO: Versions: lxml 4.9.4.0, libxml2 2.10.3, cssselect 1.2.0, parsel 1.8.1, w3lib 2.1.2, Twisted 22.10.0, Python 3.11.5 (main, Sep 11 2023, 08:31:25) [Clang 14.0.6 ], pyOpenSSL 23.3.0 (OpenSSL 3.1.4 24 Oct 2023), cryptography 41.0.7, Platform macOS-13.6.1-arm64-arm-64bit
+2024-01-02 17:36:45 [scrapy.utils.log] INFO: Scrapy 2.11.0 started (bot: crawler)
+2024-01-02 17:36:45 [scrapy.utils.log] INFO: Versions: lxml 4.9.4.0, libxml2 2.10.3, cssselect 1.2.0, parsel 1.8.1, w3lib 2.1.2, Twisted 22.10.0, Python 3.11.5 (main, Sep 11 2023, 08:31:25) [Clang 14.0.6 ], pyOpenSSL 23.3.0 (OpenSSL 3.1.4 24 Oct 2023), cryptography 41.0.7, Platform macOS-13.6.1-arm64-arm-64bit
+2024-01-02 17:37:10 [scrapy.utils.log] INFO: Scrapy 2.11.0 started (bot: crawler)
+2024-01-02 17:37:10 [scrapy.utils.log] INFO: Versions: lxml 4.9.4.0, libxml2 2.10.3, cssselect 1.2.0, parsel 1.8.1, w3lib 2.1.2, Twisted 22.10.0, Python 3.11.5 (main, Sep 11 2023, 08:31:25) [Clang 14.0.6 ], pyOpenSSL 23.3.0 (OpenSSL 3.1.4 24 Oct 2023), cryptography 41.0.7, Platform macOS-13.6.1-arm64-arm-64bit

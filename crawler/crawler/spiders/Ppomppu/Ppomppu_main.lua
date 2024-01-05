@@ -1,8 +1,10 @@
-wait_time = 0.5
+wait_time = 5
 patient_time = 10
+
 
 function wait_for(splash, selector)
     local total_wait = 0
+    splash:wait(wait_time)
     while not splash:select(selector) do
         splash:wait(wait_time)
         total_wait = total_wait + wait_time
@@ -14,9 +16,13 @@ end
 
 function main(splash, args)
     assert(splash:go(args.url))
-    wait_for(splash, 'footer')
+    wait_for(splash, 'div.power-link02 two_line')
+
+
+    local current_url = splash:url()
 
     splash:set_viewport_full()
     -- splash:runjs()
     return splash:html()
 end
+

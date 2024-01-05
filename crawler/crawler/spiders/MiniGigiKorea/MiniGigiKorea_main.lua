@@ -15,7 +15,6 @@ end
 function main(splash, args)
     assert(splash:go(args.url))
     wait_for(splash, 'footer')
-
     splash:set_viewport_full()
     -- splash:runjs()
     return splash:html()

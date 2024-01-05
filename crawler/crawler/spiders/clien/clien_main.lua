@@ -1,4 +1,4 @@
-wait_time = 0.5
+wait_time = 1
 patient_time = 10
 
 function wait_for(splash, selector)
