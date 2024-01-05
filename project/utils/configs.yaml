@@ -45,23 +45,23 @@ chatgpt:
     
   templates:
     conversation:
-      document_default: |
-                        내용 : {page_content}, 날짜 : {날짜}
+
       document: |
 
+      document_default: |
+                        내용 : {page_content}, 날짜 : {날짜}
+      
       condense: |
-
-      system: |
-                          
+                
       condense_default: |
                         Rephrase the conversation and the follow up query to be a standalone query, in its original language.
-      
+
+      system: |
+
       system_default: |
                       You are an expert of industry analysis. answer about the input by referring the following context : {context}
 
     report:
-      document: |
-
       prompt: |
 
       prompt_default: |
@@ -76,6 +76,8 @@ chatgpt:
                       Here is opinions about the company, product or service
                       {context}
 
+      document: |
+                 
       document_default: |
                         내용 : {page_content}, 날짜 : {날짜}
 
