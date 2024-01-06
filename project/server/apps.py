@@ -51,6 +51,7 @@ class FastApiServer:
         self.router.add_api_route("/load_template/{user_id}/{llm}/{template_type}", self.load_template, methods=["GET"])
         self.router.add_api_route("/edit_template/{user_id}/{llm}/{template_type}", self.edit_template, methods=["POST"])
         
+        self.router.add_api_route("/llama/{user_id}/{question}", self.llama_answer, methods=["GET"])
 
     async def chat_list(self, user_id: str):
         
