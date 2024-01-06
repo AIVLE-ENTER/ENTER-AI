@@ -1,5 +1,5 @@
 import os
-# from typing import dict
+import pandas as pd
 from pathlib import Path
 from fastapi import APIRouter
 from pydantic import BaseModel
@@ -8,6 +8,7 @@ from langchain.embeddings import OpenAIEmbeddings
 
 from server.modules.set_template import SetTemplate
 from llm_model.llama2_answer import LangchainPipline
+from server.modules.crawl_pipeline import CrawlManager
 from server.modules.chain_pipeline import ChainPipeline,ReportChainPipeline
 from server.modules.vectordb_pipeline import VectorPipeline
 
@@ -148,29 +149,30 @@ class FastApiServer:
                           user_id: str,
                           keyword: str):
         
+        target_col = 'document'
+        
+        lp = LangchainPipline(user_id=user_id) # 모델 미리 load
+        
         ### 크롤링 시 redis를 활용한 메세지큐 구현 
         
-        # 1. spider 일괄 실행하는 함수 제작(crawl_main()), keyword 함께 넘겨주기
-        # 1-1. 구글 플레이스토어 리뷰
-        # 1-2. 가능하면) 유튜브 영상 파싱
-        # (bard에 유튜브url입력하면 영상 요약해줌. 근데 bard는 api제공 안됨. 유저들이 만든 라이브러리 써야함), 해당영상 댓글 
+        cm = CrawlManager(user_id=user_id,
+                          keyword=keyword)
+        cm.run()
         
-        # 2. scarpy에서 수집된 데이터 df로 저장 하는 로직(각 데이터프레임은 keyword+사이트명+날짜로 관리)
+        data = pd.read_csv(cm.base_dir / 'merged_data.csv')
         
-        # 3. 저장한 df불러오기 
-        # 3-1 이때, df 컬럼 획일화.
-        import pandas as pd
-        data = pd.read_csv('/home/wsl_han/aivle_project/remote/ENTER-AI/project/llm_model/kt.csv')
+        filtered_data = []
+        for _, row in data.iterrows():
+            if lp.chain(question = row[target_col]).strip() == 'Yes':
+                filtered_data.append(row)
+
+        result_df = pd.DataFrame(filtered_data)
+        result_df.to_csv(cm.base_dir / 'filtered_data.csv', index=False)
         
-        lp = LangchainPipline(user_id=user_id)
-        # result = lp.chain(question = question).strip()
-        
-        # 5. df 순차적으로 loop
-        # 6. [loop] 임베딩 및 vectordb에 저장
         VectorPipeline.embedding_and_store(data       = data,
                                            user_id    = user_id,
                                            keyword    = keyword,
-                                           target_col = 'documnet',
+                                           target_col = target_col,
                                            embedding  = OpenAIEmbeddings(),
                                            )
       
