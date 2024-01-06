@@ -40,9 +40,6 @@ llama:
                         Only 'yes' or 'no' responses are acceptable. Any other response will not be tolerated.
 
 chatgpt:
-  params:
-    model: gpt-3.5-turbo #gpt-4
-    
   templates:
     conversation:
 
@@ -80,6 +77,9 @@ chatgpt:
                  
       document_default: |
                         내용 : {page_content}, 날짜 : {날짜}
+
+    params:
+      model: gpt-3.5-turbo #gpt-4
 
 
 embedding:

@@ -7,6 +7,7 @@ import os
 import time
 import inspect
 import subprocess
+import pandas as pd
 import importlib.util
 from datetime import datetime
 
@@ -16,8 +17,8 @@ class CrawlManager():
                  keyword: str) -> None:
         
         self.user_id     = user_id
-        self.keyword     = keyword
-        self.base_dir    = project_root / 'project' / 'user_data' / user_id / 'crawl_data' / keyword /datetime.today().strftime('%Y-%m-%dT%H:%M:%S')
+        self.keyword     = keyword.replace(" ","_")
+        self.base_dir    = project_root / 'project' / 'user_data' / user_id / 'crawl_data' / self.keyword /datetime.today().strftime('%Y-%m-%dT%H:%M:%S')
         self.module_path = project_root / 'crawler' / 'crawler' / 'spiders'
     
     
@@ -29,7 +30,8 @@ class CrawlManager():
             
         spider_command = self.get_spider_command(except_spider)
         self.run_scrapy(spider_command)
-        self.stop_docker_container(container_id)
+        self.remove_docker_container(container_id)
+        self.merge_csv_files()
 
 
     @staticmethod
@@ -43,11 +45,11 @@ class CrawlManager():
         
         
     def run_scrapy(self, spider_command):
-        
+        print(spider_command)
         subprocess.run(spider_command, shell=True, cwd=str(self.module_path.parent.parent))
         
         
-    def stop_docker_container(self, container_id):
+    def remove_docker_container(self, container_id):
         
         stop_command = f"docker stop {container_id}"
         remove_command = f"docker rm {container_id}"
@@ -59,12 +61,12 @@ class CrawlManager():
     def get_spider_command(self, except_spider):
         
         spiders = self._get_spider_name(except_spider)
-        scrapy_command = ''
+        scrapy_command = ""
         for spider in spiders:
-            scrapy_command += f"scrapy crawl {spider} -a user_id={self.user_id} -a keyword={self.keyword} -o {self.base_dir / spider.lower().split('spider')[0]}.csv\n"
-
+            scrapy_command += f"scrapy crawl {spider} -a user_id={self.user_id} -a keyword={self.keyword} -o {self.base_dir}/A_{spider.lower().split('spider')[0]}.csv \n"
         
         return scrapy_command
+    
         
     def _get_spider_name(self, except_spider):
         
@@ -83,7 +85,31 @@ class CrawlManager():
                     spiders_list.append(name)
                         
         return [item for item in spiders_list if item not in except_spider]
+    
+    
+    def merge_csv_files(self):
+        crawl_dir_list = list(self.base_dir.parent.iterdir())
+        
+        for crawl_dir in crawl_dir_list:
+            
+            csv_files = list(crawl_dir.glob('A_*.csv'))
+            # dataframes_list = [pd.read_csv(file) for file in csv_files if not pd.read_csv(file).empty()]
+
+            dataframes_list = []
+            for file in csv_files:
+                df = pd.read_csv(file)
+                
+                if not df.empty:
+                    dataframes_list.append(df)
+            
+            merged_df = pd.concat(dataframes_list)
+            merged_df.to_csv(crawl_dir / 'merged_data.csv', index=False)
+            
+            for csv_file in csv_files:
+                os.remove(csv_file)
+
 
 if __name__ == "__main__":
-    cm = CrawlManager('asdf1234', '에어팟')
-    print(cm.run())
+    cm = CrawlManager('asdf1234', 'kt 인터넷')
+    # print(cm.get_spider_command(except_spider=['PpomppuSpider']))
+    cm.run()

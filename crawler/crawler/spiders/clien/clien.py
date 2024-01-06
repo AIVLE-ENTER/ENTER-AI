@@ -77,6 +77,7 @@ class ClienSpider(scrapy.Spider):
                 post_url = "https://www.clien.net"+content[j]['href']
                 # print(post_url)
                 
+                
                 yield SplashRequest(
                         url=post_url,
                         callback=self.parse,
