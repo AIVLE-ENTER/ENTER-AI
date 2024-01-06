@@ -1,7 +1,7 @@
 llama:
   params:
     top_k: 1
-    max_new_tokens: 2
+    max_new_tokens: 1
     num_return_sequences: 1
   templates:
     crawl:
@@ -42,8 +42,7 @@ llama:
         of 100Mbps."
 
         '
-      prompt_default: 'Does the input text seem to be talking about KT company or
-        products?
+      prompt_default: 'Does the entered text seem to express an evaluation or opinion about kt company or its products?
 
         '
       system_default: 'You must distinguish among South Korea''s mobile telecommunication
@@ -53,6 +52,9 @@ llama:
 
         Only ''yes'' or ''no'' responses are acceptable. Any other response will not
         be tolerated.
+
+        If the entered text is in Korean, please translate it into English, then utilize the provided information and your knowledge to respond.
+
 
         '
 chatgpt:

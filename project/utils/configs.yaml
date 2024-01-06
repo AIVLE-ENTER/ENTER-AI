@@ -32,12 +32,13 @@ llama:
                               KT Internet Slim uses FTTH technology to provide a maximum bidirectional speed of 100Mbps."
 
         prompt_default: |
-                        Does the input text seem to be talking about KT company or products?
+                        Does the entered text seem to express an evaluation or opinion about kt company or its products?
           
         system_default: |
                         You must distinguish among South Korea's mobile telecommunication companies (skt, kt, lg u+).
                         You must answer based on your judgment according to the question.
                         Only 'yes' or 'no' responses are acceptable. Any other response will not be tolerated.
+                        If the entered text is in Korean, please translate it into English, then utilize the provided information and your knowledge to respond.
 
 chatgpt:
   templates:
