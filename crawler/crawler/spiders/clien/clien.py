@@ -59,7 +59,7 @@ class ClienSpider(scrapy.Spider):
     def start_requests(self):
         i = 0
         while True:
-            url = f"https://www.clien.net/service/search?q=에어팟&sort=recency&p={i}&boardCd=&isBoard=false"
+            url = f"https://www.clien.net/service/search?q={self.keyword}&sort=recency&p={i}&boardCd=&isBoard=false"
             response = requests.get(url)
             dom = BeautifulSoup(response.text, "html.parser")
             elements = dom.select(".board-nav-page")
