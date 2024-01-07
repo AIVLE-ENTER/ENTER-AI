@@ -48,43 +48,39 @@ class ClienSpider(scrapy.Spider):
                                                'documentcategory'
                                                ])
         self.base_dir   = project_root / 'project' / 'user_data' / user_id / 'crawl_data' / keyword /datetime.today().strftime('%Y-%m-%dT%H:%M:%S')
-        
+
 
     # Splash Lua 스크립트를 읽어옴
     lua_source = (
         dir_spiders / "clien_main.lua"
     ).open("r", encoding='UTF-8').read()
 
-        # 시작 요청을 생성하는 함수를 정의
+    # 시작 요청을 생성하는 함수를 정의
     def start_requests(self):
-        i=0
-
-        while i<1:
-            url = f"https://www.clien.net/service/search?q={self.keyword}&sort=recency&p={i}&boardCd=&isBoard=false"
-            # print(url)
+        i = 0
+        while True:
+            url = f"https://www.clien.net/service/search?q=에어팟&sort=recency&p={i}&boardCd=&isBoard=false"
             response = requests.get(url)
-            dom=BeautifulSoup(response.text,"html.parser")
+            dom = BeautifulSoup(response.text, "html.parser")
             elements = dom.select(".board-nav-page")
-            
+
             if not elements:
                 break
+
             content = dom.select(".subject_fixed")
-            print("#"*100)
-            print(content) # --> 중간에 무언가 가져오지 못하는 것 같음
-            print("#"*100)
-            
+
             for j in range(len(content)):
-                post_url = "https://www.clien.net"+content[j]['href']
-                # print(post_url)
-                
-                
+                post_url = "https://www.clien.net" + content[j]['href']
+                # yield를 이동하여 반복문 내에서 계속 갱신
                 yield SplashRequest(
-                        url=post_url,
-                        callback=self.parse,
-                        endpoint="execute",
-                        args={"lua_source": self.lua_source},
-                    )
-            i+=1
+                    url=post_url,
+                    callback=self.parse,
+                    endpoint="execute",
+                    args={"lua_source": self.lua_source},
+                )
+
+            i += 1
+
 
         # 메인 페이지를 파싱하는 함수를 정의
     def parse(self, response):
@@ -117,7 +113,7 @@ class ClienSpider(scrapy.Spider):
         # 날짜
         postdate = response.xpath('//div[@class="post_author"]/span')[0].get()
         date = remove_tags(postdate)
-        
+
         def clean_date(date_str):
             cleaned_date = re.sub(r'\s{3,}', ' ', date_str)  # 세칸 이상의 띄어쓰기를 하나로 변환
             cleaned_date = re.sub(r'\s*수정일\s*:\s*\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}', '', date_str)  # "수정일" 이후 제거
@@ -144,14 +140,14 @@ class ClienSpider(scrapy.Spider):
                           boardcategory    = boardcategory,
                           documentcategory = documentcategory
                           )
-        
-        
-        
+
+
+
         yield clien_data
-        
+
         # df = pd.DataFrame([clien_data])
         # df.to_csv(self.base_dir / f"{self.site}_crawl_data.csv", index=False, mode='a', header=not Path('clien_data.csv').exists())
-
+        # df.to_csv('clien_data.csv', index=False, mode='a', header=not Path('clien_data.csv').exists())
 
 if __name__ == '__main__':
     from scrapy.crawler import CrawlerProcess
@@ -161,3 +157,5 @@ if __name__ == '__main__':
 
 # scrapy crawl clien -a keyword='지니뮤직' -o clien.csv
 # 터미널에 명령어 입력해야함
+
+
