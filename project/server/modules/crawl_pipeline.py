@@ -22,7 +22,9 @@ class CrawlManager():
         self.module_path = project_root / 'crawler' / 'crawler' / 'spiders'
 
 
-    def run(self, except_spider=['PpomppuSpider', 'QuesarzoneSpider', 'MiniGigiKoreaSpider']):
+    def run(self, except_spider:list[str]=[]):
+        except_spider = ['PpomppuSpider'] + except_spider
+        
         container_id = self.run_docker_splash()
 
         if self.base_dir.is_dir() == False:
@@ -45,7 +47,6 @@ class CrawlManager():
 
 
     def run_scrapy(self, spider_command):
-        print(spider_command)
         subprocess.run(spider_command, shell=True, cwd=str(self.module_path.parent.parent))
 
 
@@ -89,6 +90,7 @@ class CrawlManager():
 
     def merge_csv_files(self):
         crawl_dir_list = list(self.base_dir.parent.iterdir())
+        print(crawl_dir_list)
 
         for crawl_dir in crawl_dir_list:
 
@@ -97,10 +99,13 @@ class CrawlManager():
 
             dataframes_list = []
             for file in csv_files:
-                df = pd.read_csv(file)
-
-                if not df.empty:
-                    dataframes_list.append(df)
+                try:
+                    df = pd.read_csv(file)
+                    if not df.empty:
+                        dataframes_list.append(df)
+                
+                except pd.errors.EmptyDataError:
+                    continue
 
             merged_df = pd.concat(dataframes_list)
             merged_df.to_csv(crawl_dir / 'merged_data.csv', index=False)
@@ -110,6 +115,6 @@ class CrawlManager():
 
 
 if __name__ == "__main__":
-    cm = CrawlManager('asdf1234', '에어팟')
+    cm = CrawlManager('asdf1234', '레이니75')
     # print(cm.get_spider_command(except_spider=['PpomppuSpider']))
     cm.run()
