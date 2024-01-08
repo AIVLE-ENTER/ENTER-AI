@@ -185,7 +185,6 @@ class FastApiServer:
         return {'status':'new_chat created!'}
     
     async def get_crawl_data(self,
-                             task:str,
                              user_id: str, 
                              keyword:str):
 
