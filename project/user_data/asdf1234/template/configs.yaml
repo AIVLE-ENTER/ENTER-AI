@@ -1,8 +1,5 @@
 llama:
-  params:
-    top_k: 1
-    max_new_tokens: 1
-    num_return_sequences: 1
+  
   templates:
     crawl:
       company_info: ''
@@ -53,6 +50,11 @@ llama:
         Only yes or no responses are acceptable. Any other response will not be tolerated.
 
         '
+    params:
+      top_k: 1
+      max_new_tokens: 1
+      num_return_sequences: 1
+      
 chatgpt:
   
   templates:
