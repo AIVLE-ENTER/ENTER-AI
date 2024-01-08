@@ -226,15 +226,14 @@ class ReportChainPipeline():
     def __init__(self, 
                 user_id:str, 
                 keyword:str,
-                report_template:str,
-                document_template:str):
+                ):
         self.BASE_DIR       = Path(__file__).parent.parent.parent / 'user_data' / user_id 
         self.database_path  = self.BASE_DIR / 'database' / keyword
         self.user_id        = user_id
         self.keyword        = keyword
         self.config         = SetTemplate(user_id)
-        self.report_template = report_template
-        self.document_template = document_template
+        self.report_template = ''
+        self.document_template = ''
     
     def load_chain(self):
         
@@ -248,10 +247,17 @@ class ReportChainPipeline():
                                 #model       = self.params.model),)
             ))
         # Now we retrieve the documents
-        config = self.config.params.load(self.BASE_DIR / 'template' / 'configs.yaml' ,addict=False)
-        self.report_template = config['chatgpt']['templates']['report']['prompt_default']
-        self.document_template = config['chatgpt']['templates']['report']['document_default']
-        
+        config = self.config.params.load(self.BASE_DIR / 'template' / 'configs.yaml' ,addict=False)['chatgpt']['templates']['report']
+        if config['prompt'] == '':
+            self.report_template = config['prompt_default']
+        else:
+            self.report_template = config['prompt']
+        print(self.report_template)
+        if config['document'] == '':
+            self.document_template = config['document_default']
+        else:
+            self.document_template = config['document']
+        print(self.document_template)
         retrieved_documents = retriever_from_llm.get_relevant_documents(query=self.report_template)
         
 
@@ -318,17 +324,17 @@ class ReportChainPipeline():
         doc.build(L)
         return str(self.BASE_DIR / 'Report.pdf')
     
-    def save_template(self):
-        #if self.config.load_template('chatgpt','report')[:-1] == self.report_template:
-        config = self.config.params.load(self.BASE_DIR / 'template' / 'configs.yaml' ,addict=False)
-        #print(config['chatgpt']['templates']['report']['prompt'])
-        #print(config['chatgpt']['templates']['report']['document'])
-        # print(config['chatgpt']['templates']['report'])
-        config['chatgpt']['templates']['report']['prompt'] = self.report_template
-        #if self.config.load_template('chatgpt','document')[:-1] == self.document_template:
-        config['chatgpt']['templates']['report']['document'] = self.document_template
-        # print(config)
-        # print(self.config.base_save_dir / 'configs.yaml')
-        self.config.params._save(config, self.config.base_save_dir , 'configs.yaml')
-        # print(self.config.load_template('chatgpt','document')[:-1],len(self.config.load_template('chatgpt','document')))
-        # print(self.document_template,len(self.document_template))
+    # def save_template(self):
+    #     #if self.config.load_template('chatgpt','report')[:-1] == self.report_template:
+    #     config = self.config.params.load(self.BASE_DIR / 'template' / 'configs.yaml' ,addict=False)
+    #     #print(config['chatgpt']['templates']['report']['prompt'])
+    #     #print(config['chatgpt']['templates']['report']['document'])
+    #     # print(config['chatgpt']['templates']['report'])
+    #     config['chatgpt']['templates']['report']['prompt'] = self.report_template
+    #     #if self.config.load_template('chatgpt','document')[:-1] == self.document_template:
+    #     config['chatgpt']['templates']['report']['document'] = self.document_template
+    #     # print(config)
+    #     # print(self.config.base_save_dir / 'configs.yaml')
+    #     self.config.params._save(config, self.config.base_save_dir , 'configs.yaml')
+    #     # print(self.config.load_template('chatgpt','document')[:-1],len(self.config.load_template('chatgpt','document')))
+    #     # print(self.document_template,len(self.document_template))

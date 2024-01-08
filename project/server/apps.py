@@ -19,8 +19,6 @@ class Quest(BaseModel):
 class Report(BaseModel): #report에 적용
     user_id: str
     keyword: str
-    report_template: str
-    document_template: str
 
 class Template(BaseModel):
     template_config: dict[str, str]
@@ -83,7 +81,7 @@ class FastApiServer:
             return result
     
     async def report(self, data: Report):
-        chainpipe = ReportChainPipeline(data.user_id, data.keyword, data.report_template, data.document_template)
+        chainpipe = ReportChainPipeline(data.user_id, data.keyword)
         result = chainpipe.load_chain()
         return FileResponse(path = result, filename='test.pdf', media_type='application/octet-stream')
         #return result
