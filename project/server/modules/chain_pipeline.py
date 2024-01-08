@@ -23,6 +23,17 @@ from langchain_core.runnables import RunnablePassthrough, RunnableLambda
 
 from project.server.modules.set_template import SetTemplate
 
+from reportlab.pdfgen import canvas
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from textwrap import wrap
+from reportlab.lib.pagesizes import A4
+from reportlab.platypus import Paragraph
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.platypus import BaseDocTemplate, PageTemplate, Flowable, FrameBreak, KeepTogether, PageBreak, Spacer
+from reportlab.platypus import Frame, PageTemplate, KeepInFrame
+from reportlab.lib.units import cm
+from reportlab.platypus import (Table, TableStyle, BaseDocTemplate)
 # TODO: 리뷰 8개만 참고함. 임베딩 시 또는 훑을 때 어떻게 되는지 봐야함
 
 class ChainPipeline():
@@ -229,7 +240,7 @@ class ReportChainPipeline():
         
         vectorstore = FAISS.load_local(folder_path = self.database_path, 
                                     embeddings  = OpenAIEmbeddings())
-        retriever = vectorstore.as_retriever()#(search_kwargs={"k": 50})
+        retriever = vectorstore.as_retriever()#search_kwargs={"k": 10})
 
         retriever_from_llm = MultiQueryRetriever.from_llm(
             retriever = retriever, 
@@ -237,19 +248,75 @@ class ReportChainPipeline():
                                 #model       = self.params.model),)
             ))
         # Now we retrieve the documents
+        config = self.config.params.load(self.BASE_DIR / 'template' / 'configs.yaml' ,addict=False)
+        self.report_template = config['chatgpt']['templates']['report']['prompt_default']
+        self.document_template = config['chatgpt']['templates']['report']['document_default']
+        
         retrieved_documents = retriever_from_llm.get_relevant_documents(query=self.report_template)
+        
 
         # DEFAULT_DOCUMENT_PROMPT = PromptTemplate.from_template(template=self.config.load_template('chatgpt','document'))
         DEFAULT_DOCUMENT_PROMPT = PromptTemplate.from_template(template=self.document_template)
 
         def _combine_documents(docs, document_prompt=DEFAULT_DOCUMENT_PROMPT, document_separator="\n\n"):
             doc_strings = [format_document(doc, document_prompt) for doc in docs]
+            #print(doc_strings)
             return document_separator.join(doc_strings)
         
         ANSWER_PROMPT = self.report_template.format(context = _combine_documents(retrieved_documents))
-        #print(ANSWER_PROMPT)
-        self.save_template()
-        return ChatOpenAI().predict(ANSWER_PROMPT)
+        answer_prompt = ChatPromptTemplate.from_messages([('system',"당신은 한국어로 보고서를 최대한 자세히 쓰도록 역할을 받았습니다."),
+                                                          ('system',ANSWER_PROMPT),
+                                                          ('human',"한글로 보고서를 써줘. 제목, 소제목은 반드시 *로 시작하게 해줘")])
+        result = ChatOpenAI()(
+            answer_prompt.format_prompt().to_messages()
+            ).content
+        print(ANSWER_PROMPT)
+        #self.save_template()
+        result = ChatOpenAI().predict(ANSWER_PROMPT)
+        return self.to_pdf(result)
+    
+    def to_pdf(self,content):
+        pdfmetrics.registerFont(TTFont("맑은고딕", "malgun.ttf"))
+        pdfmetrics.registerFont(TTFont("맑은고딕B", "Malgunbd.ttf"))
+        text_frame = Frame(
+            x1=2.54 * cm ,  # From left
+            y1=2.54 * cm ,  # From bottom
+            height=24.16 * cm,
+            width=15.92 * cm,
+            leftPadding=0 * cm,
+            bottomPadding=0 * cm,
+            rightPadding=0 * cm,
+            topPadding=0 * cm,
+            showBoundary=0,
+            id='text_frame'
+        )
+        lines = content.split('\n')
+        L=[]
+        for i,line in enumerate(lines):
+            if i==0:
+                L.append(Paragraph(line+'<br/><br/>',ParagraphStyle(name='fd',fontName='맑은고딕B',fontSize=21,leading=40)))
+                continue
+            if line == '':
+                continue
+            if line[-1]==':':
+                if i==0 or ':' not in lines[i-1]:
+                    if line[0].isdigit():
+                        L.append(Paragraph(line,ParagraphStyle(name='fd',fontName='맑은고딕B',fontSize=15,leading=30)))
+                        continue
+                    L.append(Paragraph(line,ParagraphStyle(name='fd',fontName='맑은고딕B',fontSize=18,leading=40)))
+                else:
+                    L.append(Paragraph(line,ParagraphStyle(name='fd',fontName='맑은고딕B',fontSize=15,leading=30)))
+            else:
+                L.append(Paragraph(line+'<br/><br/>',ParagraphStyle(name='fd',fontName='맑은고딕',fontSize=12,leading=20)))
+        L.append(KeepTogether([]))
+        
+        doc = BaseDocTemplate(str(self.BASE_DIR / 'Report.pdf'), pagesize=A4)
+        frontpage = PageTemplate(id='FrontPage',
+                             frames=[text_frame]
+                    )
+        doc.addPageTemplates(frontpage)
+        doc.build(L)
+        return str(self.BASE_DIR / 'Report.pdf')
     
     def save_template(self):
         #if self.config.load_template('chatgpt','report')[:-1] == self.report_template:

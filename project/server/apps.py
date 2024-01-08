@@ -11,7 +11,7 @@ from llm_model.llama2_answer import LangchainPipline
 from server.modules.crawl_pipeline import CrawlManager
 from server.modules.chain_pipeline import ChainPipeline,ReportChainPipeline
 from server.modules.vectordb_pipeline import VectorPipeline
-
+from fastapi.responses import FileResponse
 
 class Quest(BaseModel):
     question: str
@@ -85,8 +85,8 @@ class FastApiServer:
     async def report(self, data: Report):
         chainpipe = ReportChainPipeline(data.user_id, data.keyword, data.report_template, data.document_template)
         result = chainpipe.load_chain()
-        
-        return result
+        return FileResponse(path = result, filename='test.pdf', media_type='application/octet-stream')
+        #return result
     
     async def history(self, 
                       user_id:str, 
