@@ -41,7 +41,10 @@ class FastApiServer:
         self.router.add_api_route("/", self.chat_list, methods=["GET"])
         self.router.add_api_route("/history/{user_id}/{keyword}", self.history, methods=["GET"])
         self.router.add_api_route("/answer/{user_id}/{keyword}/{stream}", self.answer, methods=["POST"])
+        
         self.router.add_api_route("/start_crawl/{user_id}/{keyword}", self.start_crawl, methods=["GET"])
+        self.router.add_api_route("/crawl_data/{user_id}/{keyword}", self.get_crawl_data, methods=["POST"])
+        
         self.router.add_api_route("/vectordb/{user_id}/{method}/{keyword}", self.manage_vectordb, methods=["GET"])
         self.router.add_api_route("/new_chat/{user_id}", self.new_chat, methods=["GET"])
         self.router.add_api_route("/report", self.report, methods=["POST"])
@@ -119,8 +122,7 @@ class FastApiServer:
         st.edit(llm           = llm,
                 template_type = template_type,
                 **config.template_config)
-        \
-                
+        
         
     def llama_answer(self, 
                      user_id,
@@ -181,4 +183,17 @@ class FastApiServer:
         template.set_initial_templates()
         
         return {'status':'new_chat created!'}
+    
+    async def get_crawl_data(self,
+                             task:str,
+                             user_id: str, 
+                             keyword:str):
+
+        cm = CrawlManager(user_id=user_id,
+                          keyword=keyword)
+        
+        return cm.get_crawl_data()
+     
+        
+        
         

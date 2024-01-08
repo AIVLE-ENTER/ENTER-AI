@@ -112,9 +112,27 @@ class CrawlManager():
 
             for csv_file in csv_files:
                 os.remove(csv_file)
+                
+    def get_crawl_data(self):
+        return_crawl_data = {}
+        
+        crawl_date_list = [keyword_dir.stem for keyword_dir in self.base_dir.parent.iterdir()]
+        
+        for crawl_date in crawl_date_list:
+            try:
+                csv_name = list((self.base_dir.parent / crawl_date).glob('./filtered_data.csv'))[0]
+            
+                crawled_data = pd.read_csv(csv_name).shape[0]
+                return_crawl_data.update({crawl_date:crawled_data})
+            except:
+                continue
+            
+        return return_crawl_data
+    
 
 
 if __name__ == "__main__":
     cm = CrawlManager('asdf1234', '레이니75')
     # print(cm.get_spider_command(except_spider=['PpomppuSpider']))
-    cm.run()
+    # cm.run()
+    print(cm.get_crawl_data())
