@@ -132,7 +132,7 @@ class CrawlManager():
 
 
 if __name__ == "__main__":
-    cm = CrawlManager('asdf1234', '레이니75')
+    cm = CrawlManager('asdf1234', '기가지니')
     # print(cm.get_spider_command(except_spider=['PpomppuSpider']))
     # cm.run()
     print(cm.get_crawl_data())
