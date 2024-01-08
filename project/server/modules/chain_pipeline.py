@@ -108,7 +108,8 @@ class ChainPipeline():
                 "chat_history": lambda x: get_buffer_string(x["chat_history"]),
             }
             | CONDENSE_QUESTION_PROMPT
-            | ChatOpenAI(temperature=0)
+            | ChatOpenAI(temperature = 0,
+                         model       = self.config.load('chatgpt','params').model)
             | StrOutputParser(),
         }
         
@@ -120,8 +121,8 @@ class ChainPipeline():
         retriever_from_llm = MultiQueryRetriever.from_llm(
             retriever = retriever, 
             llm       = ChatOpenAI(temperature = 0,
-                                   #model       = self.params.model),)
-            ))
+                                   model       = self.config.load('chatgpt','params').model))
+            # ))
         # Now we retrieve the documents
         retrieved_documents = {
             "docs": itemgetter("standalone_question") | retriever_from_llm,
@@ -163,7 +164,7 @@ class ChainPipeline():
         }
         # And finally, we do the part that returns the answers
         answer = {
-            "answer": final_inputs | ANSWER_PROMPT | ChatOpenAI(),
+            "answer": final_inputs | ANSWER_PROMPT | ChatOpenAI(model=self.config.load('chatgpt','params').model),
             #"docs": itemgetter("docs"),
         }
         
@@ -244,7 +245,7 @@ class ReportChainPipeline():
         retriever_from_llm = MultiQueryRetriever.from_llm(
             retriever = retriever, 
             llm       = ChatOpenAI(temperature = 0,
-                                   model       = self.config.load('chatgpt','params')),)
+                                   model       = self.config.load('chatgpt','params').model),)
             # ))
         # Now we retrieve the documents
         config = self.config.params.load(self.BASE_DIR / 'template' / 'configs.yaml' ,addict=False)['chatgpt']['templates']['report']
@@ -273,12 +274,12 @@ class ReportChainPipeline():
         answer_prompt = ChatPromptTemplate.from_messages([('system',"당신은 한국어로 보고서를 최대한 자세히 쓰도록 역할을 받았습니다."),
                                                           ('system',ANSWER_PROMPT),
                                                           ('human',"한글로 보고서를 써줘. 제목, 소제목은 반드시 *로 시작하게 해줘")])
-        result = ChatOpenAI(model=self.config.load('chatgpt','params'))(
+        result = ChatOpenAI(model=self.config.load('chatgpt','params').model)(
             answer_prompt.format_prompt().to_messages()
             ).content
         print(ANSWER_PROMPT)
         #self.save_template()
-        result = ChatOpenAI().predict(ANSWER_PROMPT)
+        result = ChatOpenAI(model=self.config.load('chatgpt','params').model).predict(ANSWER_PROMPT)
         return self.to_pdf(result)
     
     def to_pdf(self,content):
