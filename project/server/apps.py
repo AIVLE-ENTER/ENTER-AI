@@ -194,7 +194,7 @@ class FastApiServer:
         try:
             return cm.get_crawl_data()
         except:
-            return {}
+            return {'status':False}
      
         
         
