@@ -54,8 +54,7 @@ llama:
 
         '
 chatgpt:
-  params:
-    model: gpt-3.5-turbo
+  
   templates:
     conversation:
       document: ''
@@ -104,5 +103,7 @@ chatgpt:
       document_default: '내용 : {page_content}, 날짜 : {날짜}
 
         '
+    params:
+      model: gpt-3.5-turbo
 embedding:
   params: None
