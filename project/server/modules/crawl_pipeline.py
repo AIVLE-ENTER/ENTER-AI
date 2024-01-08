@@ -18,7 +18,7 @@ class CrawlManager():
 
         self.user_id     = user_id
         self.keyword     = keyword.replace(" ","_")
-        self.base_dir    = project_root / 'project' / 'user_data' / user_id / 'crawl_data' / self.keyword /datetime.today().strftime('%Y-%m-%dT%H_%M_%_')
+        self.base_dir    = project_root / 'project' / 'user_data' / user_id / 'crawl_data' / self.keyword /datetime.today().strftime('%Y-%m-%dT%H_%M_%S')
         self.module_path = project_root / 'crawler' / 'crawler' / 'spiders'
 
 

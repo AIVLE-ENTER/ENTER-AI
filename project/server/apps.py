@@ -191,7 +191,10 @@ class FastApiServer:
         cm = CrawlManager(user_id=user_id,
                           keyword=keyword)
         
-        return cm.get_crawl_data()
+        try:
+            return cm.get_crawl_data()
+        except:
+            return {}
      
         
         

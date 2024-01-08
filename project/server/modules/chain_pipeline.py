@@ -49,6 +49,7 @@ class ChainPipeline():
         self.keyword        = keyword
         self.stream_history = None
         self.config         = SetTemplate(user_id).load('chatgpt','conversation')
+        self.params         = SetTemplate(user_id)
     
     def load_history(self):
         if self.history_path.is_file():
@@ -109,7 +110,7 @@ class ChainPipeline():
             }
             | CONDENSE_QUESTION_PROMPT
             | ChatOpenAI(temperature = 0,
-                         model       = self.config.load('chatgpt','params').model)
+                         model       = self.params.load('chatgpt','params').model)
             | StrOutputParser(),
         }
         
@@ -121,7 +122,7 @@ class ChainPipeline():
         retriever_from_llm = MultiQueryRetriever.from_llm(
             retriever = retriever, 
             llm       = ChatOpenAI(temperature = 0,
-                                   model       = self.config.load('chatgpt','params').model))
+                                   model       = self.params.load('chatgpt','params').model))
             # ))
         # Now we retrieve the documents
         retrieved_documents = {
@@ -164,7 +165,7 @@ class ChainPipeline():
         }
         # And finally, we do the part that returns the answers
         answer = {
-            "answer": final_inputs | ANSWER_PROMPT | ChatOpenAI(model=self.config.load('chatgpt','params').model),
+            "answer": final_inputs | ANSWER_PROMPT | ChatOpenAI(model=self.params.load('chatgpt','params').model),
             #"docs": itemgetter("docs"),
         }
         
