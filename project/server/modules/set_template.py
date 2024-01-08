@@ -157,7 +157,9 @@ if __name__ =="__main__":
     # st.edit('안녕하세요')
     # st.edit(param_config()[f'{llm}_template'])
     # print(st.load_template())
-    st.set_initial_templates()
+    # st.set_initial_templates()
+    st.load('chatgpt', 'params')
+    st.edit('chatgpt','params',**{'model': 'gpt-3.5-turbo'})
     # a = ParamConfig().load('/home/wsl_han/aivle_project/remote/ENTER-AI/project/user_data/star1234/templates/config.yaml')
     # print(a.chatgpt.templates.conversation.prompt_default)
     

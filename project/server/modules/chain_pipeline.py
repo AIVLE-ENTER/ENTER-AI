@@ -238,14 +238,14 @@ class ReportChainPipeline():
     def load_chain(self):
         
         vectorstore = FAISS.load_local(folder_path = self.database_path, 
-                                    embeddings  = OpenAIEmbeddings())
+                                       embeddings  = OpenAIEmbeddings())
         retriever = vectorstore.as_retriever()#search_kwargs={"k": 10})
 
         retriever_from_llm = MultiQueryRetriever.from_llm(
             retriever = retriever, 
             llm       = ChatOpenAI(temperature = 0,
-                                #model       = self.params.model),)
-            ))
+                                   model       = self.config.load('chatgpt','params')),)
+            # ))
         # Now we retrieve the documents
         config = self.config.params.load(self.BASE_DIR / 'template' / 'configs.yaml' ,addict=False)['chatgpt']['templates']['report']
         if config['prompt'] == '':
@@ -273,7 +273,7 @@ class ReportChainPipeline():
         answer_prompt = ChatPromptTemplate.from_messages([('system',"당신은 한국어로 보고서를 최대한 자세히 쓰도록 역할을 받았습니다."),
                                                           ('system',ANSWER_PROMPT),
                                                           ('human',"한글로 보고서를 써줘. 제목, 소제목은 반드시 *로 시작하게 해줘")])
-        result = ChatOpenAI()(
+        result = ChatOpenAI(model=self.config.load('chatgpt','params'))(
             answer_prompt.format_prompt().to_messages()
             ).content
         print(ANSWER_PROMPT)

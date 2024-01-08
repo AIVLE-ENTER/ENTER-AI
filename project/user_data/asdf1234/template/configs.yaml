@@ -1,5 +1,4 @@
 llama:
-  
   templates:
     crawl:
       company_info: ''
@@ -39,9 +38,11 @@ llama:
         of 100Mbps."
 
         '
-      prompt_default: "If the entered text is in Korean, translate it into English and tell me if it's related to kt or kt products. Always start your response with 'yes' if it is, and 'no' if it's not.
+      prompt_default: 'If the entered text is in Korean, translate it into English
+        and tell me if it''s related to kt or kt products. Always start your response
+        with ''yes'' if it is, and ''no'' if it''s not.
 
-        "
+        '
       system_default: 'You must distinguish among South Korea''s mobile telecommunication
         companies (skt, kt, lg u+).
 
@@ -54,9 +55,7 @@ llama:
       top_k: 1
       max_new_tokens: 1
       num_return_sequences: 1
-      
 chatgpt:
-  
   templates:
     conversation:
       document: ''
@@ -75,18 +74,14 @@ chatgpt:
         '
     report:
       prompt: ''
-      prompt_default: "당신은 산업 분석의 전문가입니다. 아래 양식에 맞게 한국어로 보고서를 쓰세요.\
-        \ 아래에 보고서의 부분별 소제목이 있고 그에 알맞게 내용을 채워줘 \  
-        \ *Title\n*Executive Summary: \
-        \ \n\
-        \ *Study Introduction:  *Methodology: \
-        \ \n *Review of Statistics: \
-        \ Give a detailed analysis of each component, including market analysis, SWOT \
-        \ analysis, 5 forces model, BCG matrix, P.E.S.T.E.L analysis, 3C analysis \
-        \ and Business Model Canvas, etc.\n *Conclusion: *References: \
-        \ \n 반드시 제시된 분석방법들에 대한 결과를 자세히 써주세요.\n \
-        \ 위의 양식에 알맞게 KT인터넷에 대한 장점과 단점, 개선점, 미래 전략, SKT, LGU+ 같은 경쟁사와의 비교 등을 담은 보고서를 반드시 한국어로 써주시기 바랍니다.\n \
-        \ KT인터넷에 대한 다음 의견들을 참고해서 보고서를 쓰기 바랍니다. {context}"
+      prompt_default: "당신은 산업 분석의 전문가입니다. 아래 양식에 맞게 한국어로 보고서를 쓰세요. 아래에 보고서의 부분별 소제목이\
+        \ 있고 그에 알맞게 내용을 채워줘    *Title\n*Executive Summary:  \n *Study Introduction:\
+        \  *Methodology:  \n *Review of Statistics:  Give a detailed analysis of each\
+        \ component, including market analysis, SWOT  analysis, 5 forces model, BCG\
+        \ matrix, P.E.S.T.E.L analysis, 3C analysis  and Business Model Canvas, etc.\n\
+        \ *Conclusion: *References:  \n 반드시 제시된 분석방법들에 대한 결과를 자세히 써주세요.\n  위의 양식에\
+        \ 알맞게 KT인터넷에 대한 장점과 단점, 개선점, 미래 전략, SKT, LGU+ 같은 경쟁사와의 비교 등을 담은 보고서를 반드시 한국어로\
+        \ 써주시기 바랍니다.\n  KT인터넷에 대한 다음 의견들을 참고해서 보고서를 쓰기 바랍니다. {context}"
       document: '내용 : {page_content}, 날짜 : {날짜}
 
         '
