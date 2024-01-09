@@ -22,12 +22,11 @@ class CrawlManager():
 
         self.user_id     = user_id
         self.keyword     = keyword.replace(" ","_")
-        self.base_dir    = project_root / 'project' / 'user_data' / user_id / 'crawl_data' / self.keyword /datetime.today().strftime('%Y-%m-%dT%Hh%Mm%Ss')
+        self.base_dir    = project_root / 'project' / 'user_data' / user_id / 'crawl_data' / self.keyword /datetime.today().strftime('%Y-%m-%dT%H:%M:%S')
         self.module_path = project_root / 'crawler' / 'crawler' / 'spiders'
 
 
     def run(self, except_spider:list[str]=[]):
-        # except_spider = ['PpomppuSpider'] + except_spider
 
         container_id = self.run_docker_splash()
 
@@ -38,7 +37,6 @@ class CrawlManager():
         self.run_scrapy(spider_command)
         self.remove_docker_container(container_id)
         self.merge_csv_files()
-        # self.scrape_google_play()
 
 
     @staticmethod
@@ -74,23 +72,6 @@ class CrawlManager():
         return scrapy_command
 
 
-    # def _get_spider_name(self, except_spider):
-
-    #     spiders_list = []
-
-    #     for modules in self.module_path.rglob('./*.py'):
-    #         if (modules.name == '__init__.py') or (modules.name == None):
-    #             continue
-
-    #         spec = importlib.util.spec_from_file_location(modules.name, self.module_path / modules.stem / modules.name)
-    #         module = importlib.util.module_from_spec(spec)
-    #         spec.loader.exec_module(module)
-
-    #         for name, obj in inspect.getmembers(module):
-    #             if inspect.isclass(obj) and ('Spider' in name):
-    #                 spiders_list.append(name)
-
-    #     return [item for item in spiders_list if item not in except_spider]
     def _get_spider_name(self, except_spider):
         spiders_list = []
 
@@ -105,7 +86,7 @@ class CrawlManager():
             for name, obj in inspect.getmembers(module):
                 if inspect.isclass(obj) and 'Spider' in name and issubclass(obj, scrapy.Spider):
                     spiders_list.append(name)
-        print([item for item in spiders_list if item not in except_spider])
+
         return [item for item in spiders_list if item not in except_spider]
 
 
@@ -139,28 +120,13 @@ class CrawlManager():
                 merged_df.to_csv(crawl_dir / 'merged_data.csv', index=False)
                 print(f"병합된 데이터를 {crawl_dir / 'merged_data.csv'}에 저장했습니다.")
 
-            for csv_file in csv_files:
-                os.remove(csv_file)
-
-    def get_crawl_data(self):
-        return_crawl_data = {}
-
-        crawl_date_list = [keyword_dir.stem for keyword_dir in self.base_dir.parent.iterdir()]
-
-        for crawl_date in crawl_date_list:
-            try:
-                csv_name = list((self.base_dir.parent / crawl_date).glob('./filtered_data.csv'))[0]
-
-                crawled_data = pd.read_csv(csv_name).shape[0]
-                return_crawl_data.update({crawl_date:crawled_data})
-            except:
-                continue
-
-        return return_crawl_data
-
+                for csv_file in csv_files:
+                    os.remove(csv_file)
+            else:
+                print(f"병합된 데이터프레임이 비어 있어 {crawl_dir}에 CSV로 저장되지 않았습니다.")
 
 
 if __name__ == "__main__":
     cm = CrawlManager('asdf1234', '멜론')
-    # print(cm.get_spider_command(except_spider=['PpomppuSpider']))
     cm.run()
+
