@@ -83,11 +83,13 @@ class FastApiServer:
             chainpipe.save_history()
             return result
     
+    
     async def report(self, data: Report):
         chainpipe = ReportChainPipeline(data.user_id, data.keyword)
         result = chainpipe.load_chain()
         return FileResponse(path = result, filename='test.pdf', media_type='application/octet-stream')
         #return result
+    
     
     async def history(self, 
                       user_id:str, 
@@ -98,6 +100,7 @@ class FastApiServer:
         history_conversation = chainpipe.conversation_json()
         
         return history_conversation
+    
     
     async def load_template(self,
                             llm:str,
@@ -195,7 +198,3 @@ class FastApiServer:
             return cm.get_crawl_data()
         except:
             return {'status':False}
-     
-        
-        
-        

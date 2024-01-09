@@ -12,9 +12,6 @@ import importlib.util
 from datetime import datetime
 import scrapy
 
-from crawler.crawler import google_crawl
-
-
 class CrawlManager():
     def __init__(self,
                  user_id: str,
