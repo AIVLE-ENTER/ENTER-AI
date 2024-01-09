@@ -171,16 +171,12 @@ class QuesarzoneSpider(scrapy.Spider):
 
         # df = pd.DataFrame([Quesarzone_data])
         # df.to_csv('quesarzone_data.csv', index=False, mode='a', header=not Path('quesarzone_data.csv').exists())
-        # df.to_csv(self.base_dir / f"{self.site}_crawl_data.csv", index=False, mode='a', header=not Path('Quesarzone_data.csv').exists())
 
 if __name__ == '__main__':
     from scrapy.crawler import CrawlerProcess
     process = CrawlerProcess()
     process.crawl(QuesarzoneSpider, keyword='기가지니', user_id='asdf1234')
     process.start()
-
-# scrapy crawl quesarzone -a keyword='지니뮤직' -o quesarzone.csv
-#터미널에 명령어를 입력해야 됨
 
 
 

@@ -71,7 +71,7 @@ class ClienSpider(scrapy.Spider):
 
             for j in range(len(content)):
                 post_url = "https://www.clien.net" + content[j]['href']
-                # print("post url :", post_url)
+
                 yield SplashRequest(
                     url=post_url,
                     callback=self.parse,
@@ -88,7 +88,6 @@ class ClienSpider(scrapy.Spider):
 
         # 메인 페이지를 파싱하는 함수를 정의
     def parse(self, response):
-        # print("parse response :", response)
 
         # 게시글
         # document = ' '.join(response.xpath('//div[@class="post_article"]/p/text()').getall())
@@ -147,7 +146,6 @@ class ClienSpider(scrapy.Spider):
         yield clien_data
 
         # df = pd.DataFrame([clien_data])
-        # df.to_csv(self.base_dir / f"{self.site}_crawl_data.csv", index=False, mode='a', header=not Path('clien_data.csv').exists())
         # df.to_csv('clien_data.csv', index=False, mode='a', header=not Path('clien_data.csv').exists())
 
 if __name__ == '__main__':
@@ -155,8 +153,5 @@ if __name__ == '__main__':
     process = CrawlerProcess()
     process.crawl(ClienSpider, keyword='기가지니', user_id='asdf1234')
     process.start()
-
-# scrapy crawl clien -a keyword='지니뮤직' -o clien.csv
-# 터미널에 명령어 입력해야함
 
 
