@@ -23,6 +23,17 @@ from langchain_core.runnables import RunnablePassthrough, RunnableLambda
 
 from project.server.modules.set_template import SetTemplate
 
+from reportlab.pdfgen import canvas
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from textwrap import wrap
+from reportlab.lib.pagesizes import A4
+from reportlab.platypus import Paragraph
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.platypus import BaseDocTemplate, PageTemplate, Flowable, FrameBreak, KeepTogether, PageBreak, Spacer
+from reportlab.platypus import Frame, PageTemplate, KeepInFrame
+from reportlab.lib.units import cm
+from reportlab.platypus import (Table, TableStyle, BaseDocTemplate)
 # TODO: 리뷰 8개만 참고함. 임베딩 시 또는 훑을 때 어떻게 되는지 봐야함
 
 class ChainPipeline():
@@ -38,6 +49,7 @@ class ChainPipeline():
         self.keyword        = keyword
         self.stream_history = None
         self.config         = SetTemplate(user_id).load('chatgpt','conversation')
+        self.params         = SetTemplate(user_id)
     
     def load_history(self):
         if self.history_path.is_file():
@@ -97,7 +109,8 @@ class ChainPipeline():
                 "chat_history": lambda x: get_buffer_string(x["chat_history"]),
             }
             | CONDENSE_QUESTION_PROMPT
-            | ChatOpenAI(temperature=0)
+            | ChatOpenAI(temperature = 0,
+                         model       = self.params.load('chatgpt','params').model)
             | StrOutputParser(),
         }
         
@@ -109,8 +122,8 @@ class ChainPipeline():
         retriever_from_llm = MultiQueryRetriever.from_llm(
             retriever = retriever, 
             llm       = ChatOpenAI(temperature = 0,
-                                   #model       = self.params.model),)
-            ))
+                                   model       = self.params.load('chatgpt','params').model))
+            # ))
         # Now we retrieve the documents
         retrieved_documents = {
             "docs": itemgetter("standalone_question") | retriever_from_llm,
@@ -152,7 +165,7 @@ class ChainPipeline():
         }
         # And finally, we do the part that returns the answers
         answer = {
-            "answer": final_inputs | ANSWER_PROMPT | ChatOpenAI(),
+            "answer": final_inputs | ANSWER_PROMPT | ChatOpenAI(model=self.params.load('chatgpt','params').model),
             #"docs": itemgetter("docs"),
         }
         
@@ -215,53 +228,115 @@ class ReportChainPipeline():
     def __init__(self, 
                 user_id:str, 
                 keyword:str,
-                report_template:str,
-                document_template:str):
+                ):
         self.BASE_DIR       = Path(__file__).parent.parent.parent / 'user_data' / user_id 
         self.database_path  = self.BASE_DIR / 'database' / keyword
         self.user_id        = user_id
         self.keyword        = keyword
         self.config         = SetTemplate(user_id)
-        self.report_template = report_template
-        self.document_template = document_template
+        self.report_template = ''
+        self.document_template = ''
     
     def load_chain(self):
         
         vectorstore = FAISS.load_local(folder_path = self.database_path, 
-                                    embeddings  = OpenAIEmbeddings())
-        retriever = vectorstore.as_retriever()#(search_kwargs={"k": 50})
+                                       embeddings  = OpenAIEmbeddings())
+        retriever = vectorstore.as_retriever()#search_kwargs={"k": 10})
 
         retriever_from_llm = MultiQueryRetriever.from_llm(
             retriever = retriever, 
             llm       = ChatOpenAI(temperature = 0,
-                                #model       = self.params.model),)
-            ))
+                                   model       = self.config.load('chatgpt','params').model),)
+            # ))
         # Now we retrieve the documents
+        config = self.config.params.load(self.BASE_DIR / 'template' / 'configs.yaml' ,addict=False)['chatgpt']['templates']['report']
+        if config['prompt'] == '':
+            self.report_template = config['prompt_default']
+        else:
+            self.report_template = config['prompt']
+        print(self.report_template)
+        if config['document'] == '':
+            self.document_template = config['document_default']
+        else:
+            self.document_template = config['document']
+        print(self.document_template)
         retrieved_documents = retriever_from_llm.get_relevant_documents(query=self.report_template)
+        
 
         # DEFAULT_DOCUMENT_PROMPT = PromptTemplate.from_template(template=self.config.load_template('chatgpt','document'))
         DEFAULT_DOCUMENT_PROMPT = PromptTemplate.from_template(template=self.document_template)
 
         def _combine_documents(docs, document_prompt=DEFAULT_DOCUMENT_PROMPT, document_separator="\n\n"):
             doc_strings = [format_document(doc, document_prompt) for doc in docs]
+            #print(doc_strings)
             return document_separator.join(doc_strings)
         
         ANSWER_PROMPT = self.report_template.format(context = _combine_documents(retrieved_documents))
-        #print(ANSWER_PROMPT)
-        self.save_template()
-        return ChatOpenAI().predict(ANSWER_PROMPT)
+        answer_prompt = ChatPromptTemplate.from_messages([('system',"당신은 한국어로 보고서를 최대한 자세히 쓰도록 역할을 받았습니다."),
+                                                          ('system',ANSWER_PROMPT),
+                                                          ('human',"한글로 보고서를 써줘. 제목, 소제목은 반드시 *로 시작하게 해줘")])
+        result = ChatOpenAI(model=self.config.load('chatgpt','params').model)(
+            answer_prompt.format_prompt().to_messages()
+            ).content
+        print(ANSWER_PROMPT)
+        #self.save_template()
+        result = ChatOpenAI(model=self.config.load('chatgpt','params').model).predict(ANSWER_PROMPT)
+        return self.to_pdf(result)
     
-    def save_template(self):
-        #if self.config.load_template('chatgpt','report')[:-1] == self.report_template:
-        config = self.config.params.load(self.BASE_DIR / 'template' / 'configs.yaml' ,addict=False)
-        #print(config['chatgpt']['templates']['report']['prompt'])
-        #print(config['chatgpt']['templates']['report']['document'])
-        # print(config['chatgpt']['templates']['report'])
-        config['chatgpt']['templates']['report']['prompt'] = self.report_template
-        #if self.config.load_template('chatgpt','document')[:-1] == self.document_template:
-        config['chatgpt']['templates']['report']['document'] = self.document_template
-        # print(config)
-        # print(self.config.base_save_dir / 'configs.yaml')
-        self.config.params._save(config, self.config.base_save_dir , 'configs.yaml')
-        # print(self.config.load_template('chatgpt','document')[:-1],len(self.config.load_template('chatgpt','document')))
-        # print(self.document_template,len(self.document_template))
+    def to_pdf(self,content):
+        pdfmetrics.registerFont(TTFont("맑은고딕", "malgun.ttf"))
+        pdfmetrics.registerFont(TTFont("맑은고딕B", "Malgunbd.ttf"))
+        text_frame = Frame(
+            x1=2.54 * cm ,  # From left
+            y1=2.54 * cm ,  # From bottom
+            height=24.16 * cm,
+            width=15.92 * cm,
+            leftPadding=0 * cm,
+            bottomPadding=0 * cm,
+            rightPadding=0 * cm,
+            topPadding=0 * cm,
+            showBoundary=0,
+            id='text_frame'
+        )
+        lines = content.split('\n')
+        L=[]
+        for i,line in enumerate(lines):
+            if i==0:
+                L.append(Paragraph(line+'<br/><br/>',ParagraphStyle(name='fd',fontName='맑은고딕B',fontSize=21,leading=40)))
+                continue
+            if line == '':
+                continue
+            if line[-1]==':':
+                if i==0 or ':' not in lines[i-1]:
+                    if line[0].isdigit():
+                        L.append(Paragraph(line,ParagraphStyle(name='fd',fontName='맑은고딕B',fontSize=15,leading=30)))
+                        continue
+                    L.append(Paragraph(line,ParagraphStyle(name='fd',fontName='맑은고딕B',fontSize=18,leading=40)))
+                else:
+                    L.append(Paragraph(line,ParagraphStyle(name='fd',fontName='맑은고딕B',fontSize=15,leading=30)))
+            else:
+                L.append(Paragraph(line+'<br/><br/>',ParagraphStyle(name='fd',fontName='맑은고딕',fontSize=12,leading=20)))
+        L.append(KeepTogether([]))
+        
+        doc = BaseDocTemplate(str(self.BASE_DIR / 'Report.pdf'), pagesize=A4)
+        frontpage = PageTemplate(id='FrontPage',
+                             frames=[text_frame]
+                    )
+        doc.addPageTemplates(frontpage)
+        doc.build(L)
+        return str(self.BASE_DIR / 'Report.pdf')
+    
+    # def save_template(self):
+    #     #if self.config.load_template('chatgpt','report')[:-1] == self.report_template:
+    #     config = self.config.params.load(self.BASE_DIR / 'template' / 'configs.yaml' ,addict=False)
+    #     #print(config['chatgpt']['templates']['report']['prompt'])
+    #     #print(config['chatgpt']['templates']['report']['document'])
+    #     # print(config['chatgpt']['templates']['report'])
+    #     config['chatgpt']['templates']['report']['prompt'] = self.report_template
+    #     #if self.config.load_template('chatgpt','document')[:-1] == self.document_template:
+    #     config['chatgpt']['templates']['report']['document'] = self.document_template
+    #     # print(config)
+    #     # print(self.config.base_save_dir / 'configs.yaml')
+    #     self.config.params._save(config, self.config.base_save_dir , 'configs.yaml')
+    #     # print(self.config.load_template('chatgpt','document')[:-1],len(self.config.load_template('chatgpt','document')))
+    #     # print(self.document_template,len(self.document_template))

@@ -11,7 +11,7 @@ from llm_model.llama2_answer import LangchainPipline
 from server.modules.crawl_pipeline import CrawlManager
 from server.modules.chain_pipeline import ChainPipeline,ReportChainPipeline
 from server.modules.vectordb_pipeline import VectorPipeline
-
+from fastapi.responses import FileResponse
 
 class Quest(BaseModel):
     question: str
@@ -19,8 +19,6 @@ class Quest(BaseModel):
 class Report(BaseModel): #report에 적용
     user_id: str
     keyword: str
-    report_template: str
-    document_template: str
 
 class Template(BaseModel):
     template_config: dict[str, str]
@@ -43,7 +41,10 @@ class FastApiServer:
         self.router.add_api_route("/", self.chat_list, methods=["GET"])
         self.router.add_api_route("/history/{user_id}/{keyword}", self.history, methods=["GET"])
         self.router.add_api_route("/answer/{user_id}/{keyword}/{stream}", self.answer, methods=["POST"])
+        
         self.router.add_api_route("/start_crawl/{user_id}/{keyword}", self.start_crawl, methods=["GET"])
+        self.router.add_api_route("/crawl_data/{user_id}/{keyword}", self.get_crawl_data, methods=["POST"])
+        
         self.router.add_api_route("/vectordb/{user_id}/{method}/{keyword}", self.manage_vectordb, methods=["GET"])
         self.router.add_api_route("/new_chat/{user_id}", self.new_chat, methods=["GET"])
         self.router.add_api_route("/report", self.report, methods=["POST"])
@@ -83,10 +84,10 @@ class FastApiServer:
             return result
     
     async def report(self, data: Report):
-        chainpipe = ReportChainPipeline(data.user_id, data.keyword, data.report_template, data.document_template)
+        chainpipe = ReportChainPipeline(data.user_id, data.keyword)
         result = chainpipe.load_chain()
-        
-        return result
+        return FileResponse(path = result, filename='test.pdf', media_type='application/octet-stream')
+        #return result
     
     async def history(self, 
                       user_id:str, 
@@ -121,8 +122,7 @@ class FastApiServer:
         st.edit(llm           = llm,
                 template_type = template_type,
                 **config.template_config)
-        \
-                
+        
         
     def llama_answer(self, 
                      user_id,
@@ -183,4 +183,19 @@ class FastApiServer:
         template.set_initial_templates()
         
         return {'status':'new_chat created!'}
+    
+    async def get_crawl_data(self,
+                             user_id: str, 
+                             keyword:str):
+
+        cm = CrawlManager(user_id=user_id,
+                          keyword=keyword)
+        
+        try:
+            return cm.get_crawl_data()
+        except:
+            return {'status':False}
+     
+        
+        
         

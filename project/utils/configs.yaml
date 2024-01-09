@@ -1,9 +1,4 @@
-llama:
-  params:
-     top_k: 1
-     max_new_tokens: 2
-     num_return_sequences: 1
-    
+llama:    
   templates:
       crawl:
         company_info: |
@@ -40,6 +35,11 @@ llama:
                         You must distinguish among South Korea's mobile telecommunication companies (skt, kt, lg u+).
                         You must answer based on your judgment according to the question.
                         Only 'yes' or 'no' responses are acceptable. Any other response will not be tolerated.
+
+      params:
+        top_k: 1
+        max_new_tokens: 2
+        num_return_sequences: 1
 
 chatgpt:
   templates:

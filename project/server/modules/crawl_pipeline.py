@@ -22,7 +22,7 @@ class CrawlManager():
 
         self.user_id     = user_id
         self.keyword     = keyword.replace(" ","_")
-        self.base_dir    = project_root / 'project' / 'user_data' / user_id / 'crawl_data' / self.keyword /datetime.today().strftime('%Y-%m-%dT%H:%M:%S')
+        self.base_dir    = project_root / 'project' / 'user_data' / user_id / 'crawl_data' / self.keyword /datetime.today().strftime('%Y-%m-%dT%Hh%Mm%Ss')
         self.module_path = project_root / 'crawler' / 'crawler' / 'spiders'
 
 
@@ -139,42 +139,28 @@ class CrawlManager():
                 merged_df.to_csv(crawl_dir / 'merged_data.csv', index=False)
                 print(f"병합된 데이터를 {crawl_dir / 'merged_data.csv'}에 저장했습니다.")
 
-                for csv_file in csv_files:
-                    os.remove(csv_file)
-            else:
-                print(f"병합된 데이터프레임이 비어 있어 {crawl_dir}에 CSV로 저장되지 않았습니다.")
+            for csv_file in csv_files:
+                os.remove(csv_file)
 
+    def get_crawl_data(self):
+        return_crawl_data = {}
 
+        crawl_date_list = [keyword_dir.stem for keyword_dir in self.base_dir.parent.iterdir()]
 
-    # def merge_csv_files(self):
-    #     crawl_dir_list = list(self.base_dir.parent.iterdir())
+        for crawl_date in crawl_date_list:
+            try:
+                csv_name = list((self.base_dir.parent / crawl_date).glob('./filtered_data.csv'))[0]
 
-    #     for crawl_dir in crawl_dir_list:
+                crawled_data = pd.read_csv(csv_name).shape[0]
+                return_crawl_data.update({crawl_date:crawled_data})
+            except:
+                continue
 
-    #         csv_files = list(crawl_dir.glob('A_*.csv'))
-    #         # dataframes_list = [pd.read_csv(file) for file in csv_files if not pd.read_csv(file).empty()]
-
-    #         dataframes_list = []
-    #         for file in csv_files:
-    #             try:
-    #                 df = pd.read_csv(file)
-    #                 if not df.empty:
-    #                     dataframes_list.append(df)
-
-    #             except pd.errors.EmptyDataError:
-    #                 continue
-
-    #         merged_df = pd.concat(dataframes_list)
-    #         merged_df.to_csv(crawl_dir / 'merged_data.csv', index=False)
-
-    #         for csv_file in csv_files:
-    #             os.remove(csv_file)
+        return return_crawl_data
 
 
 
 if __name__ == "__main__":
     cm = CrawlManager('asdf1234', '멜론')
     # print(cm.get_spider_command(except_spider=['PpomppuSpider']))
-    # cm.run(except_spider=['QuesarzoneSpider'])
     cm.run()
-
