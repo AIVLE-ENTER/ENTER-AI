@@ -5,14 +5,12 @@ import pyrootutils
 project_root = pyrootutils.setup_root(search_from = __file__,
                                       indicator   = "README.md",
                                       pythonpath  = True)
-
 import re
 import scrapy
 import numpy as np
 import pandas as pd
 from pathlib import Path
 from datetime import datetime
-
 import requests
 from bs4 import BeautifulSoup
 from w3lib.html import remove_tags
@@ -26,7 +24,6 @@ dir_spiders = Path(__file__).parent.absolute()
 # 스파이더 클래스를 정의
 class ClienSpider(scrapy.Spider):
     name = "ClienSpider"
-
     # 초기화 함수를 정의합니다.
     def __init__(self, user_id:str, keyword:str):
         super().__init__()
@@ -90,10 +87,8 @@ class ClienSpider(scrapy.Spider):
     def parse(self, response):
 
         # 게시글
-        # document = ' '.join(response.xpath('//div[@class="post_article"]/p/text()').getall())
         documents = ' '.join(response.xpath('//div[@class="post_article"]/p/text() | //div[@class="post_article"]/p//strong').getall())
         document = remove_tags(documents)
-        # print("document :", document)
 
         # 날짜
         postdate = response.xpath('//div[@class="post_author"]/span')[0].get()
@@ -110,23 +105,18 @@ class ClienSpider(scrapy.Spider):
         comment_cnt = response.xpath('//a[@class="post_reply"]/span//text()').get()
         if not comment_cnt:
             comment_cnt = 0
-        # print(commentcnt)
 
         # 게시글 카테고리
         documentcategory = response.xpath('//span[@class="post_category"]//text()').get()
-        # print(documentcategory)
 
         # 게시판 카테고리
         boardcategory = response.xpath('//div[@class="board_name"]//a//text()').get()
-        # print(boardcategory)
 
         # 좋아요
         likes = response.xpath('//a[@class="symph_count"]//text() | //a[@class="symph_count disable"]//text()').get()
-        # print(likes)
 
         # 조회수
         views = response.xpath('//span[@class="view_count"]//strong/text()').get()
-        # print(views)
 
         clien_data = dict(url              = self.url,
                           site             = self.site,
@@ -145,8 +135,6 @@ class ClienSpider(scrapy.Spider):
 
         yield clien_data
 
-        # df = pd.DataFrame([clien_data])
-        # df.to_csv('clien_data.csv', index=False, mode='a', header=not Path('clien_data.csv').exists())
 
 if __name__ == '__main__':
     from scrapy.crawler import CrawlerProcess
