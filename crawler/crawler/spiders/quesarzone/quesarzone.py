@@ -71,7 +71,7 @@ class QuesarzoneSpider(scrapy.Spider):
                                              ])
         self.base_dir = project_root / 'project' / 'user_data' / user_id / 'crawl_data' / keyword /datetime.today().strftime('%Y-%m-%dT%H:%M:%S')
 
- 
+
 
     # Splash Lua 스크립트를 읽어옴
     lua_source = (
@@ -93,7 +93,7 @@ class QuesarzoneSpider(scrapy.Spider):
         for i in range(1, page_cnt(self.keyword)+1):
             url = f'https://quasarzone.com/groupSearches?keyword={self.keyword}&page={i}'
 
-            print("parse : ", url)
+            # print("parse : ", url)
 
             yield SplashRequest(
                 url=url,
@@ -123,12 +123,6 @@ class QuesarzoneSpider(scrapy.Spider):
     # 텍스트를 파싱하는 함수를 정의
     def parse_text(self, response):
 
-    #  게시판 카테고리
-        boardcategorys_text = response.xpath('//div[@class="l-title"]//h2//text()').getall()[0]
-        boardcategorys = re.sub(r'^\d+\s*|\s{2,}', ' ', boardcategorys_text).strip().split('-')[0]
-        # print(boardcategorys)
-
-
     # 게시글 가져오기
         contents_text = response.xpath("//*[@id='org_contents']//text()").get()
         document  = remove_tags(contents_text)
@@ -147,36 +141,42 @@ class QuesarzoneSpider(scrapy.Spider):
         # print(comment_cnt)
 
     # 댓글
-        comment = response.xpath('//div[@class="reply-con-area"]/div[@class="mid-text-area"]').get()
-        print(comment)
+        # comment = response.xpath('//div[@class="reply-con-area"]/div[@class="mid-text-area"]').get()
+        # print(comment)
 
     # 조회수 가져오기
         views = response.xpath('//em[@class="view"]//text()').get()
         # print(views)
 
+    #  게시판 카테고리
+        boardcategorys_text = response.xpath('//div[@class="l-title"]//h2//text()').getall()[0]
+        boardcategory = re.sub(r'^\d+\s*|\s{2,}', ' ', boardcategorys_text).strip().split('-')[0]
+        # print(boardcategory)
+
+
         Quesarzone_data = dict(url              = self.start_urls[0],
                                site             = self.site,
-                               document         = document, 
+                               document         = document,
                                documenttype     = np.NaN, # documenttype 정의해야함 -> 크롤링으로 가져오는게 아니라 fix
                                postdate         = date,
                                likes            = np.NaN,
                                dislike          = np.NaN,
                                comment_cnt      = comment_cnt,
                                views            = views,
-                               boardcategory    = np.NaN,
+                               boardcategory    = boardcategory,
                                documentcategory = np.NaN
                                )
-         
-        yield Quesarzone_data
-        
-        # df = pd.DataFrame([Quesarzone_data])
-        # df.to_csv(self.base_dir / f"{self.site}_crawl_data.csv", index=False, mode='a', header=not Path('Quesarzone_data.csv').exists())
 
+        yield Quesarzone_data
+
+        # df = pd.DataFrame([Quesarzone_data])
+        # df.to_csv('quesarzone_data.csv', index=False, mode='a', header=not Path('quesarzone_data.csv').exists())
+        # df.to_csv(self.base_dir / f"{self.site}_crawl_data.csv", index=False, mode='a', header=not Path('Quesarzone_data.csv').exists())
 
 if __name__ == '__main__':
     from scrapy.crawler import CrawlerProcess
     process = CrawlerProcess()
-    process.crawl(QuesarzoneSpider, keyword='지니뮤직')
+    process.crawl(QuesarzoneSpider, keyword='기가지니', user_id='asdf1234')
     process.start()
 
 # scrapy crawl quesarzone -a keyword='지니뮤직' -o quesarzone.csv

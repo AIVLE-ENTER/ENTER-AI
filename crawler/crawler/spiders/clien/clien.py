@@ -33,7 +33,7 @@ class ClienSpider(scrapy.Spider):
         self.site       = '클리앙'
         self.user_id    = user_id
         self.keyword    = keyword
-        self.url        = [f"https://www.clien.net/service/search?q={self.keyword}"]
+        self.url        = f"https://www.clien.net/service/search?q={self.keyword}"
         self.data       = pd.DataFrame(columns=[
                                                'url',
                                                'site',
@@ -71,7 +71,7 @@ class ClienSpider(scrapy.Spider):
 
             for j in range(len(content)):
                 post_url = "https://www.clien.net" + content[j]['href']
-                # yield를 이동하여 반복문 내에서 계속 갱신
+                # print("post url :", post_url)
                 yield SplashRequest(
                     url=post_url,
                     callback=self.parse,
@@ -79,14 +79,33 @@ class ClienSpider(scrapy.Spider):
                     args={"lua_source": self.lua_source},
                 )
 
+            next_page_element = dom.select_one(".board-nav-next")
+            if not next_page_element:
+                break
+
             i += 1
 
 
         # 메인 페이지를 파싱하는 함수를 정의
     def parse(self, response):
-        # 제목
-        titles = response.xpath('//head/title')[0].get()
-        # print(titles)
+        # print("parse response :", response)
+
+        # 게시글
+        # document = ' '.join(response.xpath('//div[@class="post_article"]/p/text()').getall())
+        documents = ' '.join(response.xpath('//div[@class="post_article"]/p/text() | //div[@class="post_article"]/p//strong').getall())
+        document = remove_tags(documents)
+        # print("document :", document)
+
+        # 날짜
+        postdate = response.xpath('//div[@class="post_author"]/span')[0].get()
+        date = remove_tags(postdate)
+
+        def clean_date(date_str):
+            cleaned_date = re.sub(r'\s{3,}', ' ', date_str)  # 세칸 이상의 띄어쓰기를 하나로 변환
+            cleaned_date = re.sub(r'\s*수정일\s*:\s*\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}', '', date_str)  # "수정일" 이후 제거
+            return cleaned_date.strip()
+
+        date = clean_date(date)
 
         # 댓글수
         comment_cnt = response.xpath('//a[@class="post_reply"]/span//text()').get()
@@ -110,28 +129,10 @@ class ClienSpider(scrapy.Spider):
         views = response.xpath('//span[@class="view_count"]//strong/text()').get()
         # print(views)
 
-        # 날짜
-        postdate = response.xpath('//div[@class="post_author"]/span')[0].get()
-        date = remove_tags(postdate)
-
-        def clean_date(date_str):
-            cleaned_date = re.sub(r'\s{3,}', ' ', date_str)  # 세칸 이상의 띄어쓰기를 하나로 변환
-            cleaned_date = re.sub(r'\s*수정일\s*:\s*\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}', '', date_str)  # "수정일" 이후 제거
-            return cleaned_date.strip()
-
-        date = clean_date(date)
-
-        # print(date)
-
-        # 게시글
-        document = ' '.join(response.xpath('//div[@class="post_article"]/p/text()').getall())
-        # print(document)
-        # print()
-
         clien_data = dict(url              = self.url,
                           site             = self.site,
                           document         = document,
-                          documenttype     = np.NaN, # documenttype 정의해야함
+                          documenttype     = np.NaN,
                           postdate         = date,
                           likes            = likes,
                           dislike          = np.NaN,
@@ -152,7 +153,7 @@ class ClienSpider(scrapy.Spider):
 if __name__ == '__main__':
     from scrapy.crawler import CrawlerProcess
     process = CrawlerProcess()
-    process.crawl(ClienSpider, keyword='에어팟', user_id='asdf1234')
+    process.crawl(ClienSpider, keyword='기가지니', user_id='asdf1234')
     process.start()
 
 # scrapy crawl clien -a keyword='지니뮤직' -o clien.csv

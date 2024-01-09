@@ -31,7 +31,7 @@ class MiniGigiKoreaSpider(scrapy.Spider):
         self.keyword    = keyword
         self.start_urls = [f"https://meeco.kr/?_filter=search&act=&vid=&mid=ITplus&category=&search_target=title_content&search_keyword={self.keyword}"]
         self.base_dir = project_root / 'project' / 'user_data' / user_id / 'crawl_data' / keyword /datetime.today().strftime('%Y-%m-%dT%H:%M:%S')
-        
+
 
     # Splash Lua 스크립트를 읽어옴
     lua_source = (
@@ -105,7 +105,9 @@ class MiniGigiKoreaSpider(scrapy.Spider):
 
         #2번이 더 잘 나옴
         contents_elements = response.xpath('//*[@id="bBd"]/article/div[1]/div[2]')
-        contents_text_list = contents_elements.xpath('string(.)').getall()
+
+        # contents_text_list = contents_elements.xpath('string(.)').getall()
+        contents_text_list = contents_elements.xpath('.//text()').getall()
 
         # 각 텍스트를 공백을 제거하고 빈 문자열은 제외합니다.
         contents_text_list = [text.strip() for text in contents_text_list if text.strip()]
@@ -156,21 +158,16 @@ class MiniGigiKoreaSpider(scrapy.Spider):
                                  boardcategory    = boardcategory,
                                  documentcategory = documentcategory
                                  )
-        
-        
-        
+
+
+
         yield MiniGigiKorea_data
-        
+
         # df = pd.DataFrame([MiniGigiKorea_data])
-        # if (self.base_dir / f"{self.site}_crawl_data.csv").is_dir() == True:
-        #     mode = 'a'
-        # else:
-        #     mode = 'w'
-            
-        # df.to_csv(self.base_dir / f"{self.site}_crawl_data.csv", index=False, mode=mode, header=not Path('MiniGigiKorea_data.csv').exists())
+        # df.to_csv('MiniGigiKorea_data.csv', index=False, mode='a', header=not Path('MiniGigiKorea_data.csv').exists())
 
 if __name__ == '__main__':
     from scrapy.crawler import CrawlerProcess
     process = CrawlerProcess()
-    process.crawl(MiniGigiKoreaSpider, keyword='지니뮤직')
+    process.crawl(MiniGigiKoreaSpider, keyword='기가지니', user_id='asdf1234')
     process.start()
