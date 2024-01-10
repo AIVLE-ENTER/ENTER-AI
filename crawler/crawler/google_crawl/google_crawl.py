@@ -10,6 +10,7 @@ import numpy as np
 from selenium.webdriver.common.by import By
 from webdriver_manager.chrome import ChromeDriverManager
 
+
 # 브라우저 꺼짐 방지
 chrome_options = Options()
 chrome_options.add_experimental_option("detach", True)
@@ -18,6 +19,7 @@ chrome_options.add_experimental_option("excludeSwitches", ["enable-logging"])
 chrome_options.add_argument('headless')
 
 service = Service(executable_path=ChromeDriverManager().install())
+
 
 class GooglePlay():
     # 초기화 함수를 정의합니다.
@@ -40,6 +42,7 @@ class GooglePlay():
         ])
 
         self.driver = webdriver.Chrome(service=service, options=chrome_options)
+
 
     def crawl(self):
     # 웹페이지 해당 주소 이동

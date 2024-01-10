@@ -52,6 +52,7 @@ class ClienSpider(scrapy.Spider):
         dir_spiders / "clien_main.lua"
     ).open("r", encoding='UTF-8').read()
 
+
     # 시작 요청을 생성하는 함수를 정의
     def start_requests(self):
         i = 0

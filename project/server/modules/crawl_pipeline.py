@@ -124,6 +124,6 @@ class CrawlManager():
 
 
 if __name__ == "__main__":
-    cm = CrawlManager('asdf1234', '멜론')
+    cm = CrawlManager('asdf1234', '에어팟')
     cm.run()
 

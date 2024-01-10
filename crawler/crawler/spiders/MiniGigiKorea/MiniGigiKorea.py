@@ -1,6 +1,5 @@
 import rootutils
 root = rootutils.setup_root(__file__, dotenv=True, pythonpath=True, cwd=False)
-
 import pyrootutils
 project_root = pyrootutils.setup_root(search_from = __file__,
                                       indicator   = "README.md",
@@ -23,6 +22,7 @@ class MiniGigiKoreaSpider(scrapy.Spider):
     name = "MiniGigiKoreaSpider"
     custom_settings = CrawlerSettings.get("SPLASH_LOCAL")
 
+
     # 초기화 함수를 정의합니다.
     def __init__(self, user_id:str, keyword:str):
         super().__init__()
@@ -37,6 +37,7 @@ class MiniGigiKoreaSpider(scrapy.Spider):
         dir_spiders / "MiniGigiKorea_main.lua"
     ).open("r", encoding='UTF-8').read()
 
+
     # 시작 요청을 생성하는 함수를 정의
     def start_requests(self):
         for url in self.start_urls:
@@ -46,6 +47,7 @@ class MiniGigiKoreaSpider(scrapy.Spider):
                 endpoint="execute",
                 args={"lua_source": self.lua_source},
             )
+
 
     def parse(self, response):
 
@@ -58,6 +60,7 @@ class MiniGigiKoreaSpider(scrapy.Spider):
                 endpoint="execute",
                 args={"lua_source": self.lua_source},
             )
+
 
     def parse_page_cnt(self, response):
         last_page_number = int(response.xpath('//div[@class="paging bBt"]/a[@class="pageNum on num"]/text()').get())
@@ -91,6 +94,7 @@ class MiniGigiKoreaSpider(scrapy.Spider):
                     args={"lua_source": self.lua_source},
                 )
 
+
     def parse_detail(self, response):
         # 게시글 가져오기
         contents_elements = response.xpath('//*[@id="bBd"]/article/div[1]/div[2]')
@@ -121,7 +125,6 @@ class MiniGigiKoreaSpider(scrapy.Spider):
         #게시글 카테고리
         documentcategory = response.xpath('//span[@class="atc-ctg"]//a/text()').get()
 
-
         MiniGigiKorea_data = dict(url             = self.start_urls,
                                  site             = self.site,
                                  document         = document,
@@ -134,7 +137,6 @@ class MiniGigiKoreaSpider(scrapy.Spider):
                                  boardcategory    = boardcategory,
                                  documentcategory = documentcategory
                                  )
-
 
 
         yield MiniGigiKorea_data
