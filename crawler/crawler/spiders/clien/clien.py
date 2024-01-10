@@ -132,7 +132,6 @@ class ClienSpider(scrapy.Spider):
                           )
 
 
-
         yield clien_data
 
 
