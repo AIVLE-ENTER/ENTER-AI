@@ -16,7 +16,7 @@ from fastapi.responses import FileResponse
 class Quest(BaseModel):
     question: str
 
-class Report(BaseModel): #report에 적용
+class Report(BaseModel):
     user_id: str
     keyword: str
 

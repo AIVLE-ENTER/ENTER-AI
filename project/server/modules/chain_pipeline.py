@@ -23,18 +23,16 @@ from langchain_core.runnables import RunnablePassthrough, RunnableLambda
 
 from project.server.modules.set_template import SetTemplate
 
-from reportlab.pdfgen import canvas
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
-from textwrap import wrap
 from reportlab.lib.pagesizes import A4
 from reportlab.platypus import Paragraph
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.platypus import BaseDocTemplate, PageTemplate, Flowable, FrameBreak, KeepTogether, PageBreak, Spacer
-from reportlab.platypus import Frame, PageTemplate, KeepInFrame
+from reportlab.lib.styles import ParagraphStyle
+from reportlab.platypus import BaseDocTemplate, PageTemplate, KeepTogether, Frame
 from reportlab.lib.units import cm
-from reportlab.platypus import (Table, TableStyle, BaseDocTemplate)
 from reportlab.platypus.flowables import HRFlowable
+
+from project.server.modules.mermaid_pipe import *
 # TODO: 리뷰 8개만 참고함. 임베딩 시 또는 훑을 때 어떻게 되는지 봐야함
 
 class ChainPipeline():
@@ -248,7 +246,7 @@ class ReportChainPipeline():
             retriever = retriever, 
             llm       = ChatOpenAI(temperature = 0,
                                    model       = self.config.load('chatgpt','params').model),)
-            # ))
+        
         # Now we retrieve the documents
         config = self.config.params.load(self.BASE_DIR / 'template' / 'configs.yaml' ,addict=False)['chatgpt']['templates']['report']
         if config['prompt'] == '':
@@ -263,8 +261,6 @@ class ReportChainPipeline():
         print(self.document_template)
         retrieved_documents = retriever_from_llm.get_relevant_documents(query=self.report_template)
         
-
-        # DEFAULT_DOCUMENT_PROMPT = PromptTemplate.from_template(template=self.config.load_template('chatgpt','document'))
         DEFAULT_DOCUMENT_PROMPT = PromptTemplate.from_template(template=self.document_template)
 
         def _combine_documents(docs, document_prompt=DEFAULT_DOCUMENT_PROMPT, document_separator="\n"):
@@ -290,6 +286,64 @@ class ReportChainPipeline():
     def to_pdf(self,content):
         pdfmetrics.registerFont(TTFont("맑은고딕", "malgun.ttf"))
         pdfmetrics.registerFont(TTFont("맑은고딕B", "Malgunbd.ttf"))
+        # text_frame = Frame(
+        #     x1=2.54 * cm ,  # From left
+        #     y1=2.54 * cm ,  # From bottom
+        #     height=24.16 * cm,
+        #     width=15.92 * cm,
+        #     leftPadding=0 * cm,
+        #     bottomPadding=0 * cm,
+        #     rightPadding=0 * cm,
+        #     topPadding=0 * cm,
+        #     showBoundary=0,
+        #     id='text_frame'
+        # )
+
+        content = convert_mm(content)
+        lines = content.split('\n')
+        L=[]
+
+        for line in lines:
+            if line == '':
+                continue
+            if "mermaid;" in line:
+                image_mm(line,L)
+                continue
+            if line[0]=='*':
+                L.append(Paragraph(line.replace('*','')+'<br/><br/>',ParagraphStyle(name='fd',fontName='맑은고딕B',fontSize=21,leading=40)))
+                L.append(HRFlowable(width='100%', thickness=0.2))
+                continue
+            elif line[0]=='#':
+                L.append(Paragraph(line.replace('#',''),ParagraphStyle(name='fd',fontName='맑은고딕B',fontSize=15,leading=30)))
+            else:
+                L.append(Paragraph(line+'<br/><br/>',ParagraphStyle(name='fd',fontName='맑은고딕',fontSize=12,leading=20)))
+        #L.append(KeepTogether([]))
+        
+        self.mermaid(content,L)
+        
+        # doc = BaseDocTemplate(str(self.BASE_DIR / 'Report.pdf'), pagesize=A4)
+        # frontpage = PageTemplate(id='FrontPage',
+        #                      frames=[text_frame]
+        #             )
+        # doc.addPageTemplates(frontpage)
+        # doc.build(L)
+        return str(self.BASE_DIR / 'Report.pdf')
+        
+    
+    def mermaid(self,content,L):
+        answer_prompt = ChatPromptTemplate.from_messages([('system',"다음 보고서에서 Review of Statistics의 각 항목의 내용을 기반으로 충분히 mermaid 코드를 만듭니다. "),
+                                                          ('human',content)])
+        result = ChatOpenAI(model=self.config.load('chatgpt','params').model).invoke(answer_prompt.format_prompt().to_messages()).content
+        #print(result) 
+            
+        result = convert_mm(result)
+        lines = result.split('\n')
+
+        for line in lines:
+            #print(line)
+            if "mermaid;" in line:
+                image_mm(line,L)
+                    
         text_frame = Frame(
             x1=2.54 * cm ,  # From left
             y1=2.54 * cm ,  # From bottom
@@ -302,37 +356,6 @@ class ReportChainPipeline():
             showBoundary=0,
             id='text_frame'
         )
-        lines = content.split('\n')
-        L=[]
-        # for i,line in enumerate(lines):
-        #     if line[0]=='*':
-        #         L.append(Paragraph(line[1:]+'<br/><br/>',ParagraphStyle(name='fd',fontName='맑은고딕B',fontSize=21,leading=40)))
-        #         L.append(HRFlowable(width='100%', thickness=0.2))
-        #         continue
-        #     if line == '':
-        #         continue
-        #     if line[-1]==':':
-        #         if i==0 or ':' not in lines[i-1]:
-        #             if line[0].isdigit():
-        #                 L.append(Paragraph(line,ParagraphStyle(name='fd',fontName='맑은고딕B',fontSize=15,leading=30)))
-        #                 continue
-        #             L.append(Paragraph(line,ParagraphStyle(name='fd',fontName='맑은고딕B',fontSize=18,leading=40)))
-        #             L.append(HRFlowable(width='100%', thickness=0.2))
-        #         else:
-        #             L.append(Paragraph(line,ParagraphStyle(name='fd',fontName='맑은고딕B',fontSize=15,leading=30)))
-        #     else:
-        #         L.append(Paragraph(line+'<br/><br/>',ParagraphStyle(name='fd',fontName='맑은고딕',fontSize=12,leading=20)))
-        for line in lines:
-            if line == '':
-                continue
-            if line[0]=='*':
-                L.append(Paragraph(line.replace('*','')+'<br/><br/>',ParagraphStyle(name='fd',fontName='맑은고딕B',fontSize=21,leading=40)))
-                L.append(HRFlowable(width='100%', thickness=0.2))
-                continue
-            elif line[0]=='#':
-                L.append(Paragraph(line.replace('#',''),ParagraphStyle(name='fd',fontName='맑은고딕B',fontSize=15,leading=30)))
-            else:
-                L.append(Paragraph(line+'<br/><br/>',ParagraphStyle(name='fd',fontName='맑은고딕',fontSize=12,leading=20)))
         L.append(KeepTogether([]))
         
         doc = BaseDocTemplate(str(self.BASE_DIR / 'Report.pdf'), pagesize=A4)
@@ -341,19 +364,3 @@ class ReportChainPipeline():
                     )
         doc.addPageTemplates(frontpage)
         doc.build(L)
-        return str(self.BASE_DIR / 'Report.pdf')
-    
-    # def save_template(self):
-    #     #if self.config.load_template('chatgpt','report')[:-1] == self.report_template:
-    #     config = self.config.params.load(self.BASE_DIR / 'template' / 'configs.yaml' ,addict=False)
-    #     #print(config['chatgpt']['templates']['report']['prompt'])
-    #     #print(config['chatgpt']['templates']['report']['document'])
-    #     # print(config['chatgpt']['templates']['report'])
-    #     config['chatgpt']['templates']['report']['prompt'] = self.report_template
-    #     #if self.config.load_template('chatgpt','document')[:-1] == self.document_template:
-    #     config['chatgpt']['templates']['report']['document'] = self.document_template
-    #     # print(config)
-    #     # print(self.config.base_save_dir / 'configs.yaml')
-    #     self.config.params._save(config, self.config.base_save_dir , 'configs.yaml')
-    #     # print(self.config.load_template('chatgpt','document')[:-1],len(self.config.load_template('chatgpt','document')))
-    #     # print(self.document_template,len(self.document_template))
