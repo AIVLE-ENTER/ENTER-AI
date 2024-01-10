@@ -34,6 +34,7 @@ from reportlab.platypus import BaseDocTemplate, PageTemplate, Flowable, FrameBre
 from reportlab.platypus import Frame, PageTemplate, KeepInFrame
 from reportlab.lib.units import cm
 from reportlab.platypus import (Table, TableStyle, BaseDocTemplate)
+from reportlab.platypus.flowables import HRFlowable
 # TODO: 리뷰 8개만 참고함. 임베딩 시 또는 훑을 때 어떻게 되는지 봐야함
 
 class ChainPipeline():
@@ -266,21 +267,24 @@ class ReportChainPipeline():
         # DEFAULT_DOCUMENT_PROMPT = PromptTemplate.from_template(template=self.config.load_template('chatgpt','document'))
         DEFAULT_DOCUMENT_PROMPT = PromptTemplate.from_template(template=self.document_template)
 
-        def _combine_documents(docs, document_prompt=DEFAULT_DOCUMENT_PROMPT, document_separator="\n\n"):
+        def _combine_documents(docs, document_prompt=DEFAULT_DOCUMENT_PROMPT, document_separator="\n"):
             doc_strings = [format_document(doc, document_prompt) for doc in docs]
             #print(doc_strings)
             return document_separator.join(doc_strings)
         
         ANSWER_PROMPT = self.report_template.format(context = _combine_documents(retrieved_documents))
-        answer_prompt = ChatPromptTemplate.from_messages([('system',"당신은 한국어로 보고서를 최대한 자세히 쓰도록 역할을 받았습니다."),
+        answer_prompt = ChatPromptTemplate.from_messages([('system',"당신은 한국어로 보고서를 최대한 자세히 써야합니다"),
                                                           ('system',ANSWER_PROMPT),
-                                                          ('human',"한글로 보고서를 써줘. 제목, 소제목은 반드시 *로 시작하게 해줘")])
-        result = ChatOpenAI(model=self.config.load('chatgpt','params').model)(
-            answer_prompt.format_prompt().to_messages()
-            ).content
-        print(ANSWER_PROMPT)
+                                                          ('human',"제목은 *, 소제목은 #, 하위 항목은 -로 시작하게 해줘")])
+        # result = ChatOpenAI(model=self.config.load('chatgpt','params').model)(
+        #     answer_prompt.format_prompt().to_messages()
+        #     ).content
+        print(answer_prompt.format_prompt().to_messages())
+        result = ChatOpenAI(model=self.config.load('chatgpt','params').model).invoke(answer_prompt.format_prompt().to_messages()).content
+        #print(ANSWER_PROMPT)
+        
         #self.save_template()
-        result = ChatOpenAI(model=self.config.load('chatgpt','params').model).predict(ANSWER_PROMPT)
+        #result = ChatOpenAI(model=self.config.load('chatgpt','params').model).predict(ANSWER_PROMPT)
         return self.to_pdf(result)
     
     def to_pdf(self,content):
@@ -300,20 +304,33 @@ class ReportChainPipeline():
         )
         lines = content.split('\n')
         L=[]
-        for i,line in enumerate(lines):
-            if i==0:
-                L.append(Paragraph(line+'<br/><br/>',ParagraphStyle(name='fd',fontName='맑은고딕B',fontSize=21,leading=40)))
-                continue
+        # for i,line in enumerate(lines):
+        #     if line[0]=='*':
+        #         L.append(Paragraph(line[1:]+'<br/><br/>',ParagraphStyle(name='fd',fontName='맑은고딕B',fontSize=21,leading=40)))
+        #         L.append(HRFlowable(width='100%', thickness=0.2))
+        #         continue
+        #     if line == '':
+        #         continue
+        #     if line[-1]==':':
+        #         if i==0 or ':' not in lines[i-1]:
+        #             if line[0].isdigit():
+        #                 L.append(Paragraph(line,ParagraphStyle(name='fd',fontName='맑은고딕B',fontSize=15,leading=30)))
+        #                 continue
+        #             L.append(Paragraph(line,ParagraphStyle(name='fd',fontName='맑은고딕B',fontSize=18,leading=40)))
+        #             L.append(HRFlowable(width='100%', thickness=0.2))
+        #         else:
+        #             L.append(Paragraph(line,ParagraphStyle(name='fd',fontName='맑은고딕B',fontSize=15,leading=30)))
+        #     else:
+        #         L.append(Paragraph(line+'<br/><br/>',ParagraphStyle(name='fd',fontName='맑은고딕',fontSize=12,leading=20)))
+        for line in lines:
             if line == '':
                 continue
-            if line[-1]==':':
-                if i==0 or ':' not in lines[i-1]:
-                    if line[0].isdigit():
-                        L.append(Paragraph(line,ParagraphStyle(name='fd',fontName='맑은고딕B',fontSize=15,leading=30)))
-                        continue
-                    L.append(Paragraph(line,ParagraphStyle(name='fd',fontName='맑은고딕B',fontSize=18,leading=40)))
-                else:
-                    L.append(Paragraph(line,ParagraphStyle(name='fd',fontName='맑은고딕B',fontSize=15,leading=30)))
+            if line[0]=='*':
+                L.append(Paragraph(line.replace('*','')+'<br/><br/>',ParagraphStyle(name='fd',fontName='맑은고딕B',fontSize=21,leading=40)))
+                L.append(HRFlowable(width='100%', thickness=0.2))
+                continue
+            elif line[0]=='#':
+                L.append(Paragraph(line.replace('#',''),ParagraphStyle(name='fd',fontName='맑은고딕B',fontSize=15,leading=30)))
             else:
                 L.append(Paragraph(line+'<br/><br/>',ParagraphStyle(name='fd',fontName='맑은고딕',fontSize=12,leading=20)))
         L.append(KeepTogether([]))
