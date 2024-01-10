@@ -33,7 +33,6 @@ from reportlab.lib.units import cm
 from reportlab.platypus.flowables import HRFlowable
 
 from project.server.modules.mermaid_pipe import *
-# TODO: 리뷰 8개만 참고함. 임베딩 시 또는 훑을 때 어떻게 되는지 봐야함
 
 class ChainPipeline():
     
@@ -52,7 +51,7 @@ class ChainPipeline():
     
     def load_history(self):
         if self.history_path.is_file():
-            with open(self.history_path,'rb') as f: #경로예시 : ./data/history/m.txt
+            with open(self.history_path,'rb') as f:
                 memory = pickle.load(f)
         else:
             memory = ConversationBufferMemory(
@@ -75,12 +74,10 @@ class ChainPipeline():
 
 
     def load_chain(self):
-        chain_path = self.BASE_DIR / 'template' / 'chatgpt' 
         
         if not self.memory:
             self.memory = self.load_history()
-        # 1. 채팅 기록 불러오기 : loaded_memory 부분
-        # 기록있으면 불러오고 없으면 비어있는 ConversationBufferMemory 생성
+
         memory_k = self.memory_load_k(5)
         
         loaded_memory = RunnablePassthrough.assign(
@@ -94,7 +91,7 @@ class ChainPipeline():
         else:
             condense_prompt = self.config.condense
             
-        print(condense_prompt)    
+        #print(condense_prompt)    
 
         CONDENSE_QUESTION_PROMPT = ChatPromptTemplate.from_messages([
             ("system", condense_prompt + ' conversation : {chat_history}'),
@@ -115,14 +112,14 @@ class ChainPipeline():
         
         #3. 벡터DB에서 불러오기 : retrieved_documents 부분
         vectorstore = FAISS.load_local(folder_path = self.database_path, 
-                                       embeddings  = OpenAIEmbeddings()) #./data/database/faiss_index
+                                       embeddings  = OpenAIEmbeddings())
         retriever = vectorstore.as_retriever()#(search_kwargs={"k": 50})
 
         retriever_from_llm = MultiQueryRetriever.from_llm(
             retriever = retriever, 
             llm       = ChatOpenAI(temperature = 0,
                                    model       = self.params.load('chatgpt','params').model))
-            # ))
+        
         # Now we retrieve the documents
         retrieved_documents = {
             "docs": itemgetter("standalone_question") | retriever_from_llm,
@@ -137,7 +134,7 @@ class ChainPipeline():
         else:
             answer_prompt = self.config.system
         
-        print(answer_prompt)
+        #print(answer_prompt)
         
         ANSWER_PROMPT = ChatPromptTemplate.from_messages([
             ("system", answer_prompt),
@@ -150,7 +147,7 @@ class ChainPipeline():
             document_prompt = self.config.document
 
         DEFAULT_DOCUMENT_PROMPT = PromptTemplate.from_template(template=document_prompt)
-        print(DEFAULT_DOCUMENT_PROMPT)
+        #print(DEFAULT_DOCUMENT_PROMPT)
 
         def _combine_documents(docs, document_prompt=DEFAULT_DOCUMENT_PROMPT, document_separator="\n\n"):
             doc_strings = [format_document(doc, document_prompt) for doc in docs]
@@ -169,7 +166,6 @@ class ChainPipeline():
         }
         
         #5. 체인 연결
-        # And now we put it all together!
         final_chain = loaded_memory | standalone_question | retrieved_documents | answer
         
         return final_chain
@@ -253,12 +249,12 @@ class ReportChainPipeline():
             self.report_template = config['prompt_default']
         else:
             self.report_template = config['prompt']
-        print(self.report_template)
+        #print(self.report_template)
         if config['document'] == '':
             self.document_template = config['document_default']
         else:
             self.document_template = config['document']
-        print(self.document_template)
+        #print(self.document_template)
         retrieved_documents = retriever_from_llm.get_relevant_documents(query=self.report_template)
         
         DEFAULT_DOCUMENT_PROMPT = PromptTemplate.from_template(template=self.document_template)
@@ -272,15 +268,11 @@ class ReportChainPipeline():
         answer_prompt = ChatPromptTemplate.from_messages([('system',"당신은 한국어로 보고서를 최대한 자세히 써야합니다"),
                                                           ('system',ANSWER_PROMPT),
                                                           ('human',"제목은 *, 소제목은 #, 하위 항목은 -로 시작하게 해줘")])
-        # result = ChatOpenAI(model=self.config.load('chatgpt','params').model)(
-        #     answer_prompt.format_prompt().to_messages()
-        #     ).content
+
         print(answer_prompt.format_prompt().to_messages())
         result = ChatOpenAI(model=self.config.load('chatgpt','params').model).invoke(answer_prompt.format_prompt().to_messages()).content
         #print(ANSWER_PROMPT)
-        
-        #self.save_template()
-        #result = ChatOpenAI(model=self.config.load('chatgpt','params').model).predict(ANSWER_PROMPT)
+
         return self.to_pdf(result)
     
     def to_pdf(self,content):

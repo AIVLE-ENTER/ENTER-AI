@@ -33,10 +33,10 @@ def convert_mm(content):
 
 def image_mm(line,L):
     line = line.replace("mermaid;","")
-    print(line)
+    #print(line)
     url = mm(line)
     url_svg = mms(line)
-    print(url)
+    #print(url)
     res = requests.get(url)
     x = PIL.Image.open(BytesIO(res.content))
     imgdata = BytesIO()
@@ -46,9 +46,8 @@ def image_mm(line,L):
         ratio = 12.16/x.height
         xd = x.width * ratio
         L.append(platypus.Image(imgdata,xd * cm, 12.16 * cm))
-        L.append(Paragraph(f"<a href={url_svg}>show svg</a>",ParagraphStyle(name='fd',fontName='맑은고딕',fontSize=12,leading=20, textColor=blue)))
     else:
         ratio = 16/x.width
         xd = x.height * ratio
         L.append(platypus.Image(imgdata,16 * cm, xd * cm))
-        L.append(Paragraph(f"<a href={url_svg}>show svg</a>",ParagraphStyle(name='fd',fontName='맑은고딕',fontSize=12,leading=20, textColor=blue)))
+    L.append(Paragraph(f"<a href={url_svg}>show svg</a>",ParagraphStyle(name='fd',fontName='맑은고딕',fontSize=12,leading=20, textColor=blue)))
