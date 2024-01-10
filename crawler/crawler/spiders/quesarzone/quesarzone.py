@@ -1,11 +1,9 @@
 import rootutils
 root = rootutils.setup_root(__file__, dotenv=True, pythonpath=True, cwd=False)
-
 import pyrootutils
 project_root = pyrootutils.setup_root(search_from = __file__,
                                       indicator   = "README.md",
                                       pythonpath  = True)
-
 import re
 import numpy as np
 import pandas as pd
@@ -21,6 +19,7 @@ from utils import Xpath, CrawlerSettings
 
 # 스파이더의 작업 디렉토리를 설정
 dir_spiders = Path(__file__).parent.absolute()
+
 
 # 페이지 수를 계산하는 함수
 def page_cnt(keyword):
@@ -75,6 +74,7 @@ class QuesarzoneSpider(scrapy.Spider):
         dir_spiders / "quesarzone_main.lua"
     ).open("r", encoding='UTF-8').read()
 
+
     # 시작 요청을 생성하는 함수를 정의
     def start_requests(self):
         for url in self.start_urls:
@@ -84,6 +84,7 @@ class QuesarzoneSpider(scrapy.Spider):
                 endpoint="execute",
                 args={"lua_source": self.lua_source},
             )
+
 
     # 메인 페이지를 파싱하는 함수를 정의
     def parse(self, response):
@@ -114,6 +115,7 @@ class QuesarzoneSpider(scrapy.Spider):
                 endpoint="execute",
                 args=dict(lua_source=self.lua_source),
             )
+
 
     # 텍스트를 파싱하는 함수를 정의
     def parse_text(self, response):
