@@ -11,7 +11,6 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 from datetime import datetime
-
 from w3lib.html import remove_tags
 from scrapy_splash import SplashRequest
 from utils import Xpath, CrawlerSettings
@@ -49,10 +48,9 @@ class MiniGigiKoreaSpider(scrapy.Spider):
             )
 
     def parse(self, response):
-        # 확인
-        # print(response)
+
         next_page_url = response.xpath('//div[@class="paging bBt"]/a[@class="pageNext"]/@href').get()
-        # print("next_page_url : ",  'https://meeco.kr' + next_page_url)
+
         if next_page_url:
             yield SplashRequest(
                 url=response.urljoin(next_page_url),
@@ -63,10 +61,10 @@ class MiniGigiKoreaSpider(scrapy.Spider):
 
     def parse_page_cnt(self, response):
         last_page_number = int(response.xpath('//div[@class="paging bBt"]/a[@class="pageNum on num"]/text()').get())
-        # print(f'Last Page Number: {last_page_number}')
+
         if last_page_number == 1:
             url = f'https://meeco.kr/?_filter=search&act=&vid=&mid=ITplus&category=&search_target=title_content&search_keyword={self.keyword}'
-            # print(url)
+
             yield scrapy.Request(url=url, callback=self.parse_info)
         else:
             for i in range(1, last_page_number+1):
@@ -81,11 +79,11 @@ class MiniGigiKoreaSpider(scrapy.Spider):
 
 
     def parse_info(self, response):
-        # print("response: ", response)
+
         for href in response.xpath('//td[@class="title"]/a[@class="title_a title_moa"]/@href'):
             detail_url = href.get()
             post_url = response.urljoin(detail_url)
-            # print(post_url)
+
             yield SplashRequest(
                     url=post_url,
                     callback=self.parse_detail,
@@ -95,61 +93,39 @@ class MiniGigiKoreaSpider(scrapy.Spider):
 
     def parse_detail(self, response):
         # 게시글 가져오기
-
-        # print("response: ", response)
-
-        #1번
-        # contents_elements = response.xpath('//div[@class="atc-wrap"]/div[contains(@class, "xe_content")]/p[string-length(normalize-space(.)) > 0]')
-        # contents_text = " ".join(contents_elements.xpath('string(.)').getall())
-        # print("contents : ", contents_text)
-
-        #2번이 더 잘 나옴
         contents_elements = response.xpath('//*[@id="bBd"]/article/div[1]/div[2]')
-
-        # contents_text_list = contents_elements.xpath('string(.)').getall()
         contents_text_list = contents_elements.xpath('.//text()').getall()
-
         # 각 텍스트를 공백을 제거하고 빈 문자열은 제외합니다.
         contents_text_list = [text.strip() for text in contents_text_list if text.strip()]
-
         # 정규표현식을 사용하여 공백, 개행 등을 모두 공백 하나로 치환합니다.
         document = re.sub(r'\s+', ' ', ' '.join(contents_text_list))
-
-        # print("contents : ", document)
-        # print()
 
         # 게시 날짜
         date = response.xpath('//*[@id="bBd"]/article/header/ul[1]/li[3]').get()
         date = remove_tags(date)
-        # print(postdate)
 
         # 좋아요
         like = response.xpath('//div[@class="atc-vote-bts"]//span[@class="num"]').get()
         likes = remove_tags(like)
-        # print("likes : ", likes)
 
         #댓글수 가져오기
         comment_cnt = response.xpath('//span[@class="ptCl num cmt-cnt-ori"]/text()').get()
-        # print(comment_cnt)
 
         # 조회수 가져오기
         view = response.xpath('//ul[@class="ldd-title-under"]/li/span[@class="num"]').get()
         views = remove_tags(view)
-        # print("views : ", views)
 
         #게시판 카테고리
         boardcategory = response.xpath('//header[@class="bBd-hd"]//a/text()').get()
-        # print(boardcategory)
 
         #게시글 카테고리
         documentcategory = response.xpath('//span[@class="atc-ctg"]//a/text()').get()
-        # print(documentcategory)
 
 
         MiniGigiKorea_data = dict(url             = self.start_urls,
                                  site             = self.site,
                                  document         = document,
-                                 documenttype     = np.NaN, # documenttype 정의해야함
+                                 documenttype     = np.NaN,
                                  postdate         = date,
                                  likes            = likes,
                                  dislike          = np.NaN,
@@ -163,8 +139,6 @@ class MiniGigiKoreaSpider(scrapy.Spider):
 
         yield MiniGigiKorea_data
 
-        # df = pd.DataFrame([MiniGigiKorea_data])
-        # df.to_csv('MiniGigiKorea_data.csv', index=False, mode='a', header=not Path('MiniGigiKorea_data.csv').exists())
 
 if __name__ == '__main__':
     from scrapy.crawler import CrawlerProcess

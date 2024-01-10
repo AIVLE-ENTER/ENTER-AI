@@ -1,5 +1,4 @@
 from google_play_scraper import app, Sort, reviews_all
-
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
@@ -8,7 +7,6 @@ import time, os
 from datetime import datetime
 import pandas as pd
 import numpy as np
-
 from selenium.webdriver.common.by import By
 from webdriver_manager.chrome import ChromeDriverManager
 
@@ -20,7 +18,6 @@ chrome_options.add_experimental_option("excludeSwitches", ["enable-logging"])
 chrome_options.add_argument('headless')
 
 service = Service(executable_path=ChromeDriverManager().install())
-# chrome_options = webdriver.ChromeOptions()
 
 class GooglePlay():
     # 초기화 함수를 정의합니다.
@@ -60,7 +57,6 @@ class GooglePlay():
             country='kr',
             sort=Sort.NEWEST
         )
-        # print(google_reviews, type(google_reviews))
         df_google = pd.DataFrame(np.array(google_reviews),columns=['review'])
         df_google = df_google.join(pd.DataFrame(df_google.pop('review').tolist()))
         reviews = df_google[['content', 'thumbsUpCount', 'at']]
