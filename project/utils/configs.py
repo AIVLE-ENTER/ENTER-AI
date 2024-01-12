@@ -59,12 +59,7 @@ class ParamConfig():
 if __name__ == '__main__':
     llm = 'llama'
     params = ParamConfig().load()
-    # params = ParamConfig().save(params,'/home/wsl_han/aivle_project/remote/ENTER-AI/temp')
     
     temp = params[llm]['templates']['crawl']
     temp = temp.system_default
         
-    # temp = 'acx'
-    print(temp)
-
-    

@@ -3,15 +3,16 @@ import pandas as pd
 from pathlib import Path
 from fastapi import APIRouter
 from pydantic import BaseModel
+from fastapi.responses import FileResponse
 from fastapi.responses import StreamingResponse
 from langchain.embeddings import OpenAIEmbeddings
 
 from server.modules.set_template import SetTemplate
 from llm_model.llama2_answer import LangchainPipline
 from server.modules.crawl_pipeline import CrawlManager
-from server.modules.chain_pipeline import ChainPipeline,ReportChainPipeline
 from server.modules.vectordb_pipeline import VectorPipeline
-from fastapi.responses import FileResponse
+from server.modules.chain_pipeline import ChainPipeline,ReportChainPipeline
+
 
 class Quest(BaseModel):
     question: str
@@ -32,27 +33,26 @@ class Topic(BaseModel):
 class FastApiServer:
     
     def __init__(self):
-        
         self.router = APIRouter()
         self.register_routes()
+        
         
     def register_routes(self):
         
         self.router.add_api_route("/", self.chat_list, methods=["GET"])
-        self.router.add_api_route("/history/{user_id}/{keyword}", self.history, methods=["GET"])
         self.router.add_api_route("/answer/{user_id}/{keyword}/{stream}", self.answer, methods=["POST"])
+        self.router.add_api_route("/history/{user_id}/{keyword}", self.history, methods=["GET"])
         
         self.router.add_api_route("/start_crawl/{user_id}/{keyword}", self.start_crawl, methods=["GET"])
         self.router.add_api_route("/crawl_data/{user_id}/{keyword}", self.get_crawl_data, methods=["POST"])
         
-        self.router.add_api_route("/vectordb/{user_id}/{method}/{keyword}", self.manage_vectordb, methods=["GET"])
         self.router.add_api_route("/new_chat/{user_id}", self.new_chat, methods=["GET"])
+        self.router.add_api_route("/vectordb/{user_id}/{method}/{keyword}", self.manage_vectordb, methods=["GET"])
         self.router.add_api_route("/report", self.report, methods=["POST"])
                 
         self.router.add_api_route("/load_template/{user_id}/{llm}/{template_type}", self.load_template, methods=["GET"])
         self.router.add_api_route("/edit_template/{user_id}/{llm}/{template_type}", self.edit_template, methods=["POST"])
         
-        self.router.add_api_route("/llama/{user_id}/{question}", self.llama_answer, methods=["GET"])
 
     async def chat_list(self, user_id: str):
         
@@ -60,6 +60,7 @@ class FastApiServer:
         chatlist = os.listdir(chat_list_path)
         
         return chatlist
+    
     
     async def answer(self,
                      user_id: str,
@@ -74,29 +75,34 @@ class FastApiServer:
         response_input  = {'question': item.question}
         
         if stream == True:
+            
             return StreamingResponse(content    = chainpipe.streaming(chain, response_input), 
                                      media_type = "text/event-stream")
+            
         else:
             result = chain.invoke(response_input)
             history.save_context(response_input, {"answer" : result["answer"].content})
             chainpipe.memory = history
             chainpipe.save_history()
+            
             return result
     
     
     async def report(self, data: Report):
-        chainpipe = ReportChainPipeline(data.user_id, data.keyword)
+        chainpipe = ReportChainPipeline(user_id=data.user_id,
+                                        keyword=data.keyword)
         result = chainpipe.load_chain()
+        
         return FileResponse(path = result, filename='test.pdf', media_type='application/octet-stream')
-        #return result
+     
     
     
     async def history(self, 
                       user_id:str, 
                       keyword:str):
         
-        chainpipe = ChainPipeline(user_id = user_id,
-                                  keyword = keyword)
+        chainpipe = ChainPipeline(user_id=user_id,
+                                  keyword=keyword)
         history_conversation = chainpipe.conversation_json()
         
         return history_conversation
@@ -125,18 +131,7 @@ class FastApiServer:
         st.edit(llm           = llm,
                 template_type = template_type,
                 **config.template_config)
-        
-        
-    def llama_answer(self, 
-                     user_id,
-                     question,
-                     ): # 임시. 테스트로 두고 크롤링 파이프라인 개발하면 삭제할 예정
-        
-        lp = LangchainPipline(user_id=user_id)
-        result = lp.chain(question=question).strip()
-        
-        return result
-    
+           
     
     def manage_vectordb(self, 
                         user_id: str, 
@@ -145,8 +140,8 @@ class FastApiServer:
 
         if method == 'delete':
             
-            return VectorPipeline.delete_store_by_keyword(user_id = user_id,
-                                                          keyword = keyword)
+            return VectorPipeline.delete_store_by_keyword(user_id=user_id,
+                                                          keyword=keyword)
 
                     
     async def start_crawl(self,
@@ -155,9 +150,7 @@ class FastApiServer:
         
         target_col = 'document'
         
-        lp = LangchainPipline(user_id=user_id) # 모델 미리 load
-        
-        ### 크롤링 시 redis를 활용한 메세지큐 구현 
+        lp = LangchainPipline(user_id=user_id)
         
         cm = CrawlManager(user_id=user_id,
                           keyword=keyword)
@@ -187,14 +180,16 @@ class FastApiServer:
         
         return {'status':'new_chat created!'}
     
+    
     async def get_crawl_data(self,
                              user_id: str, 
-                             keyword:str):
+                             keyword: str):
 
         cm = CrawlManager(user_id=user_id,
                           keyword=keyword)
         
         try:
             return cm.get_crawl_data()
+        
         except:
             return {'status':False}

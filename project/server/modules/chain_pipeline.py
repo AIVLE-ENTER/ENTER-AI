@@ -21,18 +21,18 @@ from langchain_core.messages import get_buffer_string
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough, RunnableLambda
 
-from project.server.modules.set_template import SetTemplate
-
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.lib.units import cm
 from reportlab.lib.pagesizes import A4
 from reportlab.platypus import Paragraph
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.lib.styles import ParagraphStyle
-from reportlab.platypus import BaseDocTemplate, PageTemplate, KeepTogether, Frame
-from reportlab.lib.units import cm
 from reportlab.platypus.flowables import HRFlowable
+from reportlab.platypus import BaseDocTemplate, PageTemplate, KeepTogether, Frame
 
-from project.server.modules.mermaid_pipe import *
+from project.utils.mermaid_utils import *
+from project.server.modules.set_template import SetTemplate
+
 
 class ChainPipeline():
     
@@ -49,10 +49,12 @@ class ChainPipeline():
         self.config         = SetTemplate(user_id).load('chatgpt','conversation')
         self.params         = SetTemplate(user_id)
     
+    
     def load_history(self):
         if self.history_path.is_file():
             with open(self.history_path,'rb') as f:
                 memory = pickle.load(f)
+                
         else:
             memory = ConversationBufferMemory(
                 return_messages = True, 
@@ -83,20 +85,17 @@ class ChainPipeline():
         loaded_memory = RunnablePassthrough.assign(
             chat_history=RunnableLambda(memory_k.load_memory_variables) | itemgetter("history"),
         )
-        #print(memory_k.load_memory_variables({}))
-        #print(len(memory_k.load_memory_variables({})['history']))
         
         if self.config.condense == '':
             condense_prompt = self.config.condense_default
+            
         else:
             condense_prompt = self.config.condense
             
-        #print(condense_prompt)    
-
         CONDENSE_QUESTION_PROMPT = ChatPromptTemplate.from_messages([
-            ("system", condense_prompt + ' conversation : {chat_history}'),
-            ("human", "{question}"),
-        ])
+                                                                    ("system", condense_prompt + ' conversation : {chat_history}'),
+                                                                    ("human", "{question}"),
+                                                                    ])
 
         # Now we calculate the standalone question
         standalone_question = {
@@ -106,7 +105,8 @@ class ChainPipeline():
             }
             | CONDENSE_QUESTION_PROMPT
             | ChatOpenAI(temperature = 0,
-                         model       = self.params.load('chatgpt','params').model)
+                         model       = self.params.load('chatgpt','params').model
+                         )
             | StrOutputParser(),
         }
         
@@ -115,10 +115,9 @@ class ChainPipeline():
                                        embeddings  = OpenAIEmbeddings())
         retriever = vectorstore.as_retriever()#(search_kwargs={"k": 50})
 
-        retriever_from_llm = MultiQueryRetriever.from_llm(
-            retriever = retriever, 
-            llm       = ChatOpenAI(temperature = 0,
-                                   model       = self.params.load('chatgpt','params').model))
+        retriever_from_llm = MultiQueryRetriever.from_llm(retriever = retriever, 
+                                                          llm       = ChatOpenAI(model       = self.params.load('chatgpt','params').model,
+                                                                                 temperature = 0))
         
         # Now we retrieve the documents
         retrieved_documents = {
@@ -131,39 +130,41 @@ class ChainPipeline():
         
         if self.config.system == '':
             answer_prompt = self.config.system_default
+            
         else:
             answer_prompt = self.config.system
         
-        #print(answer_prompt)
-        
         ANSWER_PROMPT = ChatPromptTemplate.from_messages([
-            ("system", answer_prompt),
-            ("human", "{question}"),
-        ])
+                                                        ("system", answer_prompt),
+                                                        ("human", "{question}"),
+                                                        ])
         
         if self.config.document == '':
             document_prompt = self.config.document_default
+            
         else:
             document_prompt = self.config.document
 
         DEFAULT_DOCUMENT_PROMPT = PromptTemplate.from_template(template=document_prompt)
-        #print(DEFAULT_DOCUMENT_PROMPT)
+  
 
         def _combine_documents(docs, document_prompt=DEFAULT_DOCUMENT_PROMPT, document_separator="\n\n"):
             doc_strings = [format_document(doc, document_prompt) for doc in docs]
             print(doc_strings)
+            
             return document_separator.join(doc_strings)
+        
 
         # Now we construct the inputs for the final prompt
         final_inputs = {
-            "context": lambda x: _combine_documents(x["docs"]),
-            "question": itemgetter("question"),
-        }
+                        "context": lambda x: _combine_documents(x["docs"]),
+                        "question": itemgetter("question"),
+                        }
         # And finally, we do the part that returns the answers
         answer = {
-            "answer": final_inputs | ANSWER_PROMPT | ChatOpenAI(model=self.params.load('chatgpt','params').model),
-            #"docs": itemgetter("docs"),
-        }
+                  "answer": final_inputs | ANSWER_PROMPT | ChatOpenAI(model=self.params.load('chatgpt','params').model),
+                  #"docs": itemgetter("docs"),
+                  }
         
         #5. 체인 연결
         final_chain = loaded_memory | standalone_question | retrieved_documents | answer
@@ -176,7 +177,7 @@ class ChainPipeline():
             self.memory = self.load_history()
             
         temp = self.memory.load_memory_variables({})['history']
-        n=len(temp)//2
+        n = len(temp)//2
         conversation = {'n': n, 'conversation':[]}
         
         for i in range(n):
@@ -184,6 +185,7 @@ class ChainPipeline():
                                                  'question':temp[2*i].content,
                                                  'answer': temp[2*i+1].content
                                                  })
+            
         return conversation
 
 
@@ -210,13 +212,15 @@ class ChainPipeline():
         
     async def streaming(self, chain, query):
         self.stream_history=''
+        
         async for stream in chain.astream(query):
             self.stream_history += stream['answer'].content
-            #print(self.stream_history)
+          
             yield stream['answer'].content
+            
         self.memory.save_context({"question" : query['question']}, {"answer" : self.stream_history})
         self.save_history()
-        #print({"question" : query['question'], "answer" : self.stream_history})
+
     
 class ReportChainPipeline():
         
@@ -224,12 +228,12 @@ class ReportChainPipeline():
                 user_id:str, 
                 keyword:str,
                 ):
-        self.BASE_DIR       = Path(__file__).parent.parent.parent / 'user_data' / user_id 
-        self.database_path  = self.BASE_DIR / 'database' / keyword
-        self.user_id        = user_id
-        self.keyword        = keyword
-        self.config         = SetTemplate(user_id)
-        self.report_template = ''
+        self.BASE_DIR          = Path(__file__).parent.parent.parent / 'user_data' / user_id 
+        self.database_path     = self.BASE_DIR / 'database' / keyword
+        self.user_id           = user_id
+        self.keyword           = keyword
+        self.config            = SetTemplate(user_id)
+        self.report_template   = ''
         self.document_template = ''
     
     def load_chain(self):
@@ -239,30 +243,37 @@ class ReportChainPipeline():
         retriever = vectorstore.as_retriever()#search_kwargs={"k": 10})
 
         retriever_from_llm = MultiQueryRetriever.from_llm(
-            retriever = retriever, 
-            llm       = ChatOpenAI(temperature = 0,
-                                   model       = self.config.load('chatgpt','params').model),)
+                                                          retriever = retriever, 
+                                                          llm       = ChatOpenAI(model       = self.config.load('chatgpt','params').model,
+                                                                                 temperature = 0,
+                                                                                 ))
         
         # Now we retrieve the documents
         config = self.config.params.load(self.BASE_DIR / 'template' / 'configs.yaml' ,addict=False)['chatgpt']['templates']['report']
+        
         if config['prompt'] == '':
             self.report_template = config['prompt_default']
+            
         else:
             self.report_template = config['prompt']
-        #print(self.report_template)
+            
+       
         if config['document'] == '':
             self.document_template = config['document_default']
+            
         else:
             self.document_template = config['document']
-        #print(self.document_template)
+        
         retrieved_documents = retriever_from_llm.get_relevant_documents(query=self.report_template)
         
         DEFAULT_DOCUMENT_PROMPT = PromptTemplate.from_template(template=self.document_template)
 
+
         def _combine_documents(docs, document_prompt=DEFAULT_DOCUMENT_PROMPT, document_separator="\n"):
             doc_strings = [format_document(doc, document_prompt) for doc in docs]
-            #print(doc_strings)
+           
             return document_separator.join(doc_strings)
+        
         
         ANSWER_PROMPT = self.report_template.format(context = _combine_documents(retrieved_documents))
         answer_prompt = ChatPromptTemplate.from_messages([('system',"당신은 한국어로 보고서를 최대한 자세히 써야합니다"),
@@ -271,9 +282,10 @@ class ReportChainPipeline():
 
         print(answer_prompt.format_prompt().to_messages())
         result = ChatOpenAI(model=self.config.load('chatgpt','params').model).invoke(answer_prompt.format_prompt().to_messages()).content
-        #print(ANSWER_PROMPT)
+        
 
         return self.to_pdf(result)
+    
     
     def to_pdf(self,content):
         pdfmetrics.registerFont(TTFont("맑은고딕", "malgun.ttf"))
@@ -298,17 +310,22 @@ class ReportChainPipeline():
         for line in lines:
             if line == '':
                 continue
+            
             if "mermaid;" in line:
                 image_mm(line,L)
                 continue
+            
             if line[0]=='*':
                 L.append(Paragraph(line.replace('*','')+'<br/><br/>',ParagraphStyle(name='fd',fontName='맑은고딕B',fontSize=21,leading=40)))
                 L.append(HRFlowable(width='100%', thickness=0.2))
                 continue
+            
             elif line[0]=='#':
                 L.append(Paragraph(line.replace('#',''),ParagraphStyle(name='fd',fontName='맑은고딕B',fontSize=15,leading=30)))
+                
             else:
                 L.append(Paragraph(line+'<br/><br/>',ParagraphStyle(name='fd',fontName='맑은고딕',fontSize=12,leading=20)))
+                
         #L.append(KeepTogether([]))
         
         self.mermaid(content,L)
@@ -319,6 +336,7 @@ class ReportChainPipeline():
         #             )
         # doc.addPageTemplates(frontpage)
         # doc.build(L)
+        
         return str(self.BASE_DIR / 'Report.pdf')
         
     
@@ -326,13 +344,11 @@ class ReportChainPipeline():
         answer_prompt = ChatPromptTemplate.from_messages([('system',"다음 보고서에서 Review of Statistics의 각 항목의 내용을 기반으로 충분히 mermaid 코드를 만듭니다. "),
                                                           ('human',content)])
         result = ChatOpenAI(model=self.config.load('chatgpt','params').model).invoke(answer_prompt.format_prompt().to_messages()).content
-        #print(result) 
             
         result = convert_mm(result)
         lines = result.split('\n')
 
         for line in lines:
-            #print(line)
             if "mermaid;" in line:
                 image_mm(line,L)
                     
@@ -351,8 +367,9 @@ class ReportChainPipeline():
         L.append(KeepTogether([]))
         
         doc = BaseDocTemplate(str(self.BASE_DIR / 'Report.pdf'), pagesize=A4)
-        frontpage = PageTemplate(id='FrontPage',
-                             frames=[text_frame]
+        frontpage = PageTemplate(id     = 'FrontPage',
+                                 frames = [text_frame]
                     )
+        
         doc.addPageTemplates(frontpage)
         doc.build(L)

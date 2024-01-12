@@ -1,5 +1,6 @@
 import rootutils
 root = rootutils.setup_root(__file__, dotenv=True, pythonpath=True, cwd=False)
+
 import pyrootutils
 project_root = pyrootutils.setup_root(search_from = __file__,
                                       indicator   = "README.md",
@@ -7,12 +8,11 @@ project_root = pyrootutils.setup_root(search_from = __file__,
 import re
 import scrapy
 import numpy as np
-import pandas as pd
 from pathlib import Path
 from datetime import datetime
+from utils import CrawlerSettings
 from w3lib.html import remove_tags
 from scrapy_splash import SplashRequest
-from utils import Xpath, CrawlerSettings
 
 
 # 스파이더의 작업 디렉토리를 설정
@@ -22,8 +22,6 @@ class MiniGigiKoreaSpider(scrapy.Spider):
     name = "MiniGigiKoreaSpider"
     custom_settings = CrawlerSettings.get("SPLASH_LOCAL")
 
-
-    # 초기화 함수를 정의합니다.
     def __init__(self, user_id:str, keyword:str):
         super().__init__()
         self.site       = '미니기기코리아'
@@ -42,11 +40,11 @@ class MiniGigiKoreaSpider(scrapy.Spider):
     def start_requests(self):
         for url in self.start_urls:
             yield SplashRequest(
-                url=url,
-                callback=self.parse,
-                endpoint="execute",
-                args={"lua_source": self.lua_source},
-            )
+                                url      = url,
+                                callback = self.parse,
+                                endpoint = "execute",
+                                args     = {"lua_source": self.lua_source},
+                                )
 
 
     def parse(self, response):
@@ -55,11 +53,11 @@ class MiniGigiKoreaSpider(scrapy.Spider):
 
         if next_page_url:
             yield SplashRequest(
-                url=response.urljoin(next_page_url),
-                callback=self.parse_page_cnt,
-                endpoint="execute",
-                args={"lua_source": self.lua_source},
-            )
+                                url=response.urljoin(next_page_url),
+                                callback=self.parse_page_cnt,
+                                endpoint="execute",
+                                args={"lua_source": self.lua_source},
+                                )
 
 
     def parse_page_cnt(self, response):
@@ -69,16 +67,18 @@ class MiniGigiKoreaSpider(scrapy.Spider):
             url = f'https://meeco.kr/?_filter=search&act=&vid=&mid=ITplus&category=&search_target=title_content&search_keyword={self.keyword}'
 
             yield scrapy.Request(url=url, callback=self.parse_info)
+            
         else:
             for i in range(1, last_page_number+1):
                 url = f'https://meeco.kr/index.php?_filter=search&mid=ITplus&search_target=title_content&search_keyword={self.keyword}&division=-38162354&last_division=-35713619&page={i}'
 
+
                 yield SplashRequest(
-                    url=url,
-                    callback=self.parse_info,
-                    endpoint="execute",
-                    args={"lua_source": self.lua_source},
-                )
+                                    url      = url,
+                                    callback = self.parse_info,
+                                    endpoint = "execute",
+                                    args     = {"lua_source": self.lua_source},
+                                    )
 
 
     def parse_info(self, response):
@@ -88,11 +88,11 @@ class MiniGigiKoreaSpider(scrapy.Spider):
             post_url = response.urljoin(detail_url)
 
             yield SplashRequest(
-                    url=post_url,
-                    callback=self.parse_detail,
-                    endpoint="execute",
-                    args={"lua_source": self.lua_source},
-                )
+                                url      = post_url,
+                                callback = self.parse_detail,
+                                endpoint = "execute",
+                                args     = {"lua_source": self.lua_source},
+                                )
 
 
     def parse_detail(self, response):
@@ -125,19 +125,18 @@ class MiniGigiKoreaSpider(scrapy.Spider):
         #게시글 카테고리
         documentcategory = response.xpath('//span[@class="atc-ctg"]//a/text()').get()
 
-        MiniGigiKorea_data = dict(url             = self.start_urls,
-                                 site             = self.site,
-                                 document         = document,
-                                 documenttype     = np.NaN,
-                                 postdate         = date,
-                                 likes            = likes,
-                                 dislike          = np.NaN,
-                                 comment_cnt      = comment_cnt,
-                                 views            = views,
-                                 boardcategory    = boardcategory,
-                                 documentcategory = documentcategory
-                                 )
-
+        MiniGigiKorea_data = dict(url              = self.start_urls,
+                                  site             = self.site,
+                                  document         = document,
+                                  documenttype     = np.NaN,
+                                  postdate         = date,
+                                  likes            = likes,
+                                  dislike          = np.NaN,
+                                  comment_cnt      = comment_cnt,
+                                  views            = views,
+                                  boardcategory    = boardcategory,
+                                  documentcategory = documentcategory
+                                  )
 
         yield MiniGigiKorea_data
 

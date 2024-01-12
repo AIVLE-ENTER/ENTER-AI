@@ -13,7 +13,7 @@ class VectorPipeline():
                             user_id:str,
                             keyword:str, 
                             embedding, 
-                            target_col:str = 'document'):
+                            target_col:str='document'):
         
         kwd_db_path = cls.BASE_DIR / user_id / 'database' / f'{keyword}'  
         
@@ -33,6 +33,7 @@ class VectorPipeline():
             vectorstore.save_local(folder_path=kwd_db_path, 
                                    )
             
+            
     @classmethod
     def delete_store_by_keyword(cls, 
                                 user_id:str, 
@@ -48,9 +49,9 @@ class VectorPipeline():
         else:
             shutil.rmtree(str(database_path))
             shutil.rmtree(str(history_path))
-            # history_path.unlink()
             
             return {"status" : "delete success"}
+        
         
 if __name__ == "__main__":
     # VectorPipeline.delete_store_by_keyword('asdf1234', 'cafecopy')

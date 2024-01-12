@@ -5,12 +5,13 @@ project_root = pyrootutils.setup_root(search_from = __file__,
 
 import os
 import time
+import scrapy
 import inspect
 import subprocess
 import pandas as pd
 import importlib.util
 from datetime import datetime
-import scrapy
+
 
 class CrawlManager():
     def __init__(self,
@@ -43,11 +44,14 @@ class CrawlManager():
         container_id = subprocess.check_output(docker_command, shell=True).strip().decode("utf-8")
         time.sleep(2)
 
+
         return container_id
 
 
     def run_scrapy(self, spider_command):
-        subprocess.run(spider_command, shell=True, cwd=str(self.module_path.parent.parent))
+        subprocess.run(spider_command, 
+                       shell = True, 
+                       cwd   = str(self.module_path.parent.parent))
 
 
     def remove_docker_container(self, container_id):
@@ -65,7 +69,7 @@ class CrawlManager():
         scrapy_command = ""
         for spider in spiders:
             scrapy_command += f"scrapy crawl {spider} -a user_id={self.user_id} -a keyword={self.keyword} -o {self.base_dir}/A_{spider.lower().split('spider')[0]}.csv \n"
-        print(scrapy_command)
+        
         return scrapy_command
 
 
@@ -91,7 +95,6 @@ class CrawlManager():
         crawl_dir_list = list(self.base_dir.parent.iterdir())
 
         for crawl_dir in crawl_dir_list:
-            # csv_files = list(crawl_dir.glob('A_*.csv'))
             csv_files = [file for file in crawl_dir.glob('A_*.csv') if file.is_file()]
 
             if not csv_files:
@@ -119,6 +122,7 @@ class CrawlManager():
 
                 for csv_file in csv_files:
                     os.remove(csv_file)
+                    
             else:
                 print(f"병합된 데이터프레임이 비어 있어 {crawl_dir}에 CSV로 저장되지 않았습니다.")
 

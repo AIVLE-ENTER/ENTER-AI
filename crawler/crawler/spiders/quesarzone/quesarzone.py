@@ -1,16 +1,17 @@
 import rootutils
 root = rootutils.setup_root(__file__, dotenv=True, pythonpath=True, cwd=False)
+
 import pyrootutils
 project_root = pyrootutils.setup_root(search_from = __file__,
                                       indicator   = "README.md",
                                       pythonpath  = True)
 import re
+import scrapy
+import requests
 import numpy as np
 import pandas as pd
 from pathlib import Path
 from datetime import datetime
-import scrapy
-import requests
 from bs4 import BeautifulSoup
 from w3lib.html import remove_tags
 from scrapy_splash import SplashRequest
@@ -26,15 +27,19 @@ def page_cnt(keyword):
     url = f"https://quasarzone.com/groupSearches?keyword={keyword}&page=1"
     response = requests.get(url)
     dom=BeautifulSoup(response.text,"html.parser")
+    
     n = int(dom.select("small")[0].text.split()[1].replace(',',''))
     i = n//21+1
+    
     while True:
         url = f"https://quasarzone.com/groupSearches?keyword={keyword}&page={i}"
         response = requests.get(url)
         dom=BeautifulSoup(response.text,"html.parser")
+        
         if not dom.select(".next"):
+            
             return int(i)
-            break
+        
         else:
             i = dom.select(".next")[0]['href'].split('=')[2]
 
@@ -44,10 +49,7 @@ class QuesarzoneSpider(scrapy.Spider):
     name = "QuesarzoneSpider"
     custom_settings = CrawlerSettings.get("SPLASH_LOCAL")
 
-
-    # 초기화 함수를 정의합니다.
     def __init__(self, user_id:str, keyword:str):
-
         super().__init__()
         self.site     = '퀘이사존'
         self.keyword  = keyword
@@ -79,11 +81,11 @@ class QuesarzoneSpider(scrapy.Spider):
     def start_requests(self):
         for url in self.start_urls:
             yield SplashRequest(
-                url=url,
-                callback=self.parse,
-                endpoint="execute",
-                args={"lua_source": self.lua_source},
-            )
+                                url      = url,
+                                callback = self.parse,
+                                endpoint = "execute",
+                                args     = {"lua_source": self.lua_source},
+                                )
 
 
     # 메인 페이지를 파싱하는 함수를 정의
@@ -93,12 +95,12 @@ class QuesarzoneSpider(scrapy.Spider):
 
 
             yield SplashRequest(
-                url=url,
-                endpoint="execute",
-                args={"lua_source": self.lua_source},
-                meta={'url': url},
-                callback=self.parse_content,
-        )
+                                url      = url,
+                                endpoint = "execute",
+                                args     = {"lua_source": self.lua_source},
+                                meta     = {'url': url},
+                                callback = self.parse_content,
+                                )
 
 
     # 컨텐츠 페이지를 파싱하는 함수를 정의
@@ -110,11 +112,11 @@ class QuesarzoneSpider(scrapy.Spider):
 
 
             yield SplashRequest(
-                url=post_url,
-                callback=self.parse_text,
-                endpoint="execute",
-                args=dict(lua_source=self.lua_source),
-            )
+                                url      = post_url,
+                                callback = self.parse_text,
+                                endpoint = "execute",
+                                args     = dict(lua_source=self.lua_source),
+                                )
 
 
     # 텍스트를 파싱하는 함수를 정의
@@ -124,16 +126,13 @@ class QuesarzoneSpider(scrapy.Spider):
         contents_text = response.xpath("//*[@id='org_contents']//text()").get()
         document  = remove_tags(contents_text)
 
-
     # 날짜 가져오기
         date = response.xpath('//p[@class="right"]/span/text()').get()
         if not date:
             date = response.xpath('//span[@class="date notranslate"]/em/text()').get()
 
-
     # 댓글 수
         comment_cnt = response.xpath('//em[@class="reply"]//text()').get()
-
 
     # 조회수 가져오기
         views = response.xpath('//em[@class="view"]//text()').get()
@@ -141,7 +140,6 @@ class QuesarzoneSpider(scrapy.Spider):
     #  게시판 카테고리
         boardcategorys_text = response.xpath('//div[@class="l-title"]//h2//text()').getall()[0]
         boardcategory = re.sub(r'^\d+\s*|\s{2,}', ' ', boardcategorys_text).strip().split('-')[0]
-
 
         Quesarzone_data = dict(url              = self.start_urls[0],
                                site             = self.site,

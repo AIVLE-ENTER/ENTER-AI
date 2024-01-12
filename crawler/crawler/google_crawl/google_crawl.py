@@ -1,12 +1,10 @@
+import numpy as np
+import pandas as pd
 from google_play_scraper import app, Sort, reviews_all
+
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
-from bs4 import BeautifulSoup
-import time, os
-from datetime import datetime
-import pandas as pd
-import numpy as np
 from selenium.webdriver.common.by import By
 from webdriver_manager.chrome import ChromeDriverManager
 
@@ -22,7 +20,6 @@ service = Service(executable_path=ChromeDriverManager().install())
 
 
 class GooglePlay():
-    # 초기화 함수를 정의합니다.
     def __init__(self,keyword):
         self.site = 'google_play'
         self.keyword = keyword
@@ -41,34 +38,36 @@ class GooglePlay():
             'documentcategory'
         ])
 
-        self.driver = webdriver.Chrome(service=service, options=chrome_options)
+        self.driver = webdriver.Chrome(service=service, 
+                                       options=chrome_options)
 
 
     def crawl(self):
-    # 웹페이지 해당 주소 이동
-
         self.driver.get(self.url)
 
         reviews=self.driver.find_elements(by=By.XPATH, value = '//a[@class="Qfxief"]')[0]
         href = reviews.get_attribute('href')
-        print(href.split("=")[1])
-
+    
         google_reviews = reviews_all(
-            href.split("=")[1],
-            sleep_milliseconds=0,
-            lang='ko',
-            country='kr',
-            sort=Sort.NEWEST
-        )
+                                    href.split("=")[1],
+                                    sleep_milliseconds=0,
+                                    lang='ko',
+                                    country='kr',
+                                    sort=Sort.NEWEST
+                                    )
+        
         df_google = pd.DataFrame(np.array(google_reviews),columns=['review'])
         df_google = df_google.join(pd.DataFrame(df_google.pop('review').tolist()))
+        
         reviews = df_google[['content', 'thumbsUpCount', 'at']]
         reviews.rename(columns={'content': 'document', 'thumbsUpCount': 'likes', 'at': 'postdate'}, inplace=True)
+        
         google_reviews = pd.concat([self.data, reviews], axis=0)
         google_reviews['url'] = self.url
         google_reviews['site'] = self.site
 
         google_reviews.to_csv('google_reviews.csv', index=False)
+        
         return reviews
 
 

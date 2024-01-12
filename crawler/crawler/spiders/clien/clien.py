@@ -1,17 +1,18 @@
 import rootutils
 root = rootutils.setup_root(
     __file__, dotenv=True, pythonpath=True, cwd=False)
+
 import pyrootutils
 project_root = pyrootutils.setup_root(search_from = __file__,
                                       indicator   = "README.md",
                                       pythonpath  = True)
 import re
 import scrapy
+import requests
 import numpy as np
 import pandas as pd
 from pathlib import Path
 from datetime import datetime
-import requests
 from bs4 import BeautifulSoup
 from w3lib.html import remove_tags
 from scrapy_splash import SplashRequest
@@ -24,7 +25,7 @@ dir_spiders = Path(__file__).parent.absolute()
 # 스파이더 클래스를 정의
 class ClienSpider(scrapy.Spider):
     name = "ClienSpider"
-    # 초기화 함수를 정의합니다.
+ 
     def __init__(self, user_id:str, keyword:str):
         super().__init__()
         self.site       = '클리앙'
@@ -56,6 +57,7 @@ class ClienSpider(scrapy.Spider):
     # 시작 요청을 생성하는 함수를 정의
     def start_requests(self):
         i = 0
+        
         while True:
             url = f"https://www.clien.net/service/search?q={self.keyword}&sort=recency&p={i}&boardCd=&isBoard=false"
             response = requests.get(url)
@@ -71,11 +73,11 @@ class ClienSpider(scrapy.Spider):
                 post_url = "https://www.clien.net" + content[j]['href']
 
                 yield SplashRequest(
-                    url=post_url,
-                    callback=self.parse,
-                    endpoint="execute",
-                    args={"lua_source": self.lua_source},
-                )
+                                    url      = post_url,
+                                    callback = self.parse,
+                                    endpoint = "execute",
+                                    args     = {"lua_source": self.lua_source},
+                                    )
 
             next_page_element = dom.select_one(".board-nav-next")
             if not next_page_element:
@@ -94,6 +96,7 @@ class ClienSpider(scrapy.Spider):
         # 날짜
         postdate = response.xpath('//div[@class="post_author"]/span')[0].get()
         date = remove_tags(postdate)
+
 
         def clean_date(date_str):
             cleaned_date = re.sub(r'\s{3,}', ' ', date_str)  # 세칸 이상의 띄어쓰기를 하나로 변환
@@ -131,7 +134,6 @@ class ClienSpider(scrapy.Spider):
                           boardcategory    = boardcategory,
                           documentcategory = documentcategory
                           )
-
 
         yield clien_data
 
